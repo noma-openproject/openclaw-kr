@@ -249,7 +249,7 @@
 | Day | 작업 | 산출물 | 상태 |
 |---|---|---|---|
 | 0 | ngrok 고정 도메인 설정 + cloudflared 제거 + 카카오 스킬 URL 교체 | 고정 URL | [x] |
-| 1 | GitHub Actions CI → .exe/.dmg + Release v0.1.0-alpha | 다운로드 링크 | [ ] |
+| 1 | GitHub Actions CI → .exe/.dmg + Release v0.1.0-alpha | 다운로드 링크 | [x] |
 | 2 | 원클릭 설치(터미널 0회) + gateway 자동시작 + 에러 한국어화 | 더블클릭→첫 대화 | [ ] |
 | 3 | 온보딩 화면 + API키 없이 되는 데모(로또/KBO/우편번호) + 샘플 3개 | 즉시 체험 | [ ] |
 | 4 | 스크린샷 5장 + GIF 2개 + GPters 포스트 초안 + 설치 가이드 | 커뮤니티 자료 | [ ] |
