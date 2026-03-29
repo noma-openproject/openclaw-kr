@@ -7,10 +7,10 @@ const os = require('os');
 const http = require('http');
 
 const GATEWAY_PORT = 18789;
-const HEALTH_CHECK_INTERVAL_MS = 2000;
-const HEALTH_CHECK_TIMEOUT_MS = 30000;
+const HEALTH_CHECK_INTERVAL_MS = 1500;
+const HEALTH_CHECK_TIMEOUT_MS = 60000;
 const RESTART_DELAY_MS = 3000;
-const MAX_RESTART_COUNT = 1;
+const MAX_RESTART_COUNT = 2;
 
 /** @type {import('child_process').ChildProcess | null} */
 let gatewayProcess = null;
