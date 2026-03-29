@@ -1,0 +1,69 @@
+{
+  "name": "openclaw-kr",
+  "version": "0.1.0-alpha",
+  "description": "한국형 AI 에이전트 운영 셸 — OpenClaw downstream 배포판",
+  "main": "launcher/main.js",
+  "scripts": {
+    "start": "electron launcher/main.js",
+    "check": "bash scripts/setup-check.sh",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test:visual": "playwright test",
+    "kakao": "node plugins/kakao-entry/index.js",
+    "tunnel": "bash scripts/tunnel-ngrok.sh",
+    "test:kakao": "node plugins/kakao-entry/test/echo.test.js",
+    "test:utils": "node packages/verified-kr-skills/_shared/kr-skill-utils.test.js",
+    "test:hwp": "node packages/verified-kr-skills/hwp-convert/test/hwp-convert.test.js",
+    "test:metro": "node packages/verified-kr-skills/seoul-metro/test/seoul-metro.test.js",
+    "test:postal": "node packages/verified-kr-skills/postal-code/test/postal-code.test.js",
+    "test:srt": "node packages/verified-kr-skills/srt-query/test/srt-query.test.js",
+    "test:lotto": "node packages/verified-kr-skills/lotto-results/test/lotto-results.test.js",
+    "test:kbo": "node packages/verified-kr-skills/kbo-scores/test/kbo-scores.test.js",
+    "test:dust": "node packages/verified-kr-skills/fine-dust/test/fine-dust.test.js",
+    "test:delivery": "node packages/verified-kr-skills/delivery-tracking/test/delivery-tracking.test.js",
+    "test:blueribbon": "node packages/verified-kr-skills/blue-ribbon/test/blue-ribbon.test.js",
+    "test:daiso": "node packages/verified-kr-skills/daiso-search/test/daiso-search.test.js",
+    "test:skills": "npm run test:utils && npm run test:hwp && npm run test:metro && npm run test:postal && npm run test:srt && npm run test:lotto && npm run test:kbo && npm run test:dust && npm run test:delivery && npm run test:blueribbon && npm run test:daiso",
+    "scan:hwp": "node scripts/scan-skill.js packages/verified-kr-skills/hwp-convert",
+    "scan:metro": "node scripts/scan-skill.js packages/verified-kr-skills/seoul-metro",
+    "scan:postal": "node scripts/scan-skill.js packages/verified-kr-skills/postal-code",
+    "scan:srt": "node scripts/scan-skill.js packages/verified-kr-skills/srt-query",
+    "build:ui": "cd launcher/ui && npm run build",
+    "dev:ui": "cd launcher/ui && npm run dev",
+    "build:app": "npm run build:ui && electron-builder",
+    "build:mac": "npm run build:ui && electron-builder --mac",
+    "build:win": "npm run build:ui && electron-builder --win",
+    "build:linux": "npm run build:ui && electron-builder --linux"
+  },
+  "keywords": [
+    "openclaw",
+    "ai-agent",
+    "korea",
+    "electron",
+    "kakao"
+  ],
+  "author": "openclaw-kr contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.50.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9.0.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {
+    "openclaw": "^2026.3.23-2"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "profileName": "alpha-secure",
+  "description": "openclaw-kr alpha 보안 프로필 — 가장 제한적. 모든 실행 전 사용자 확인.",
+
+  "tools": {
+    "profile": "minimal",
+    "deny": [
+      "install",
+      "image",
+      "agents.create",
+      "agents.update"
+    ],
+    "allow": []
+  },
+
+  "exec": {
+    "askBeforeExecute": true,
+    "askFallback": "deny"
+  },
+
+  "skills": {
+    "sources": ["clawhub"],
+    "verifiedOnly": true
+  },
+
+  "browser": {
+    "mode": "existing-session"
+  },
+
+  "kakaoSafeMode": {
+    "write": false,
+    "edit": false,
+    "browser": false,
+    "read": true,
+    "search": true
+  },
+
+  "privacy": {
+    "memorySearch": false,
+    "telemetry": false
+  }
+}

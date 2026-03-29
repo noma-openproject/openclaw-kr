@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kakao-skill-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["plugins/kakao-entry/index.js"],
+      "port": 3001
+    },
+    {
+      "name": "electron-launcher",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 18789
+    }
+  ]
+}

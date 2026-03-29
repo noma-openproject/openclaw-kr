@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+dist-app/
+out/
+
+# OpenClaw local config (contains tokens)
+.openclaw/
+
+# Electron
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.exe
+*.msi
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Private project documents
+openclaw-kr-proposal-*.docx
+openclaw-kr-project-knowledge.md

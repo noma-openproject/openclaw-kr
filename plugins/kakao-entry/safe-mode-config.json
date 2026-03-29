@@ -1,0 +1,29 @@
+{
+  "name": "kakao-safe-mode",
+  "description": "카카오 원격면 Safe Mode 기본 설정. 위험한 작업을 차단하고 읽기/검색만 허용.",
+
+  "permissions": {
+    "write": false,
+    "edit": false,
+    "browser": false,
+    "read": true,
+    "search": true,
+    "execute": false
+  },
+
+  "overrides": {
+    "allowTemporaryUnlock": true,
+    "unlockScope": "session",
+    "unlockRequiresConfirmation": true,
+    "logUnlockEvents": true
+  },
+
+  "messaging": {
+    "maxResponseLength": 1000,
+    "language": "ko",
+    "errorMessages": {
+      "blockedAction": "이 작업은 Safe Mode에서 차단됩니다. 데스크톱 앱에서 실행해주세요.",
+      "unlockPrompt": "Safe Mode를 일시 해제하시겠습니까? 이 세션에서만 적용됩니다."
+    }
+  }
+}

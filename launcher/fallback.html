@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>openclaw-kr — 연결 대기</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    .container { max-width: 480px; padding: 2rem; }
+    .logo { font-size: 3rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.5rem; color: #fff; }
+    .subtitle { font-size: 0.95rem; color: #888; margin-bottom: 2rem; line-height: 1.6; }
+    .command-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #4ade80;
+      text-align: left;
+      margin-bottom: 1.5rem;
+      user-select: all;
+    }
+    .command-box .comment { color: #666; }
+    .retry-btn {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.6rem 1.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .retry-btn:hover { background: #1d4ed8; }
+    .status { font-size: 0.8rem; color: #666; margin-top: 1rem; }
+    .status.online { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🦞</div>
+    <h1>OpenClaw Gateway에 연결할 수 없습니다</h1>
+    <p class="subtitle">
+      데스크톱 앱을 사용하려면 먼저 OpenClaw Gateway를 시작해야 합니다.
+    </p>
+    <div class="command-box">
+      <div class="comment"># 터미널에서 실행</div>
+      <div>npx openclaw gateway --port 18789</div>
+    </div>
+    <button class="retry-btn" onclick="retry()">다시 연결</button>
+    <div class="status" id="status">Gateway 응답 대기 중...</div>
+  </div>
+  <script>
+    async function retry() {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '연결 시도 중...';
+      statusEl.className = 'status';
+      try {
+        const status = await window.openclawKR.getStatus();
+        if (status.online) {
+          statusEl.textContent = '연결 성공! 대시보드로 이동합니다...';
+          statusEl.className = 'status online';
+          setTimeout(() => {
+            window.location.href = 'http://localhost:' + status.port;
+          }, 500);
+        } else {
+          statusEl.textContent = 'Gateway가 아직 응답하지 않습니다. 시작 후 다시 시도하세요.';
+        }
+      } catch {
+        statusEl.textContent = '연결 실패. Gateway가 실행 중인지 확인하세요.';
+      }
+    }
+
+    // 5초마다 자동 재시도
+    setInterval(async () => {
+      try {
+        const status = await window.openclawKR.getStatus();
+        if (status.online) {
+          window.location.href = 'http://localhost:' + status.port;
+        }
+      } catch { /* 무시 */ }
+    }, 5000);
+  </script>
+</body>
+</html>

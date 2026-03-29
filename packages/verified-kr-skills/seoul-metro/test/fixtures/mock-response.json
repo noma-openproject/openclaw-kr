@@ -1,0 +1,31 @@
+{
+  "realtimeArrivalList": [
+    {
+      "subwayId": "1002",
+      "updnLine": "내선순환",
+      "trainLineNm": "잠실방면",
+      "bstatnNm": "성수",
+      "arvlMsg2": "1분 30초 후 도착",
+      "arvlMsg3": "교대",
+      "ordkey": "1"
+    },
+    {
+      "subwayId": "1002",
+      "updnLine": "외선순환",
+      "trainLineNm": "신도림방면",
+      "bstatnNm": "신도림",
+      "arvlMsg2": "3분 후 도착",
+      "arvlMsg3": "서초",
+      "ordkey": "2"
+    },
+    {
+      "subwayId": "1077",
+      "updnLine": "상행",
+      "trainLineNm": "신사행",
+      "bstatnNm": "신사",
+      "arvlMsg2": "5분 후 도착",
+      "arvlMsg3": "양재시민의숲",
+      "ordkey": "1"
+    }
+  ]
+}

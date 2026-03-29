@@ -1,0 +1,11 @@
+{
+  "name": "@openclaw-kr/kbo-scores",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KBO 프로야구 경기 결과 조회 스킬",
+  "main": "lib/api.js",
+  "dependencies": {
+    "kbo-game": "0.0.2"
+  },
+  "license": "MIT"
+}

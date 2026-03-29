@@ -1,0 +1,39 @@
+{
+  "results": {
+    "common": {
+      "errorCode": "0",
+      "errorMessage": "정상",
+      "totalCount": "2",
+      "currentPage": "1",
+      "countPerPage": "5"
+    },
+    "juso": [
+      {
+        "zipNo": "06621",
+        "roadAddr": "서울특별시 중구 세종대로 209 (태평로1가, 서울특별시청)",
+        "roadAddrPart1": "서울특별시 중구 세종대로 209",
+        "roadAddrPart2": "(태평로1가, 서울특별시청)",
+        "jibunAddr": "서울특별시 중구 태평로1가 31",
+        "engAddr": "209, Sejong-daero, Jung-gu, Seoul",
+        "bdNm": "서울특별시청",
+        "siNm": "서울특별시",
+        "sggNm": "중구",
+        "emdNm": "태평로1가",
+        "rn": "세종대로"
+      },
+      {
+        "zipNo": "04524",
+        "roadAddr": "서울특별시 중구 세종대로 110 (태평로1가, 서울특별시의회)",
+        "roadAddrPart1": "서울특별시 중구 세종대로 110",
+        "roadAddrPart2": "(태평로1가, 서울특별시의회)",
+        "jibunAddr": "서울특별시 중구 태평로1가 44",
+        "engAddr": "110, Sejong-daero, Jung-gu, Seoul",
+        "bdNm": "서울특별시의회",
+        "siNm": "서울특별시",
+        "sggNm": "중구",
+        "emdNm": "태평로1가",
+        "rn": "세종대로"
+      }
+    ]
+  }
+}

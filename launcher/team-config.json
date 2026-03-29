@@ -1,0 +1,15 @@
+{
+  "enabled": false,
+  "roles": {
+    "planner": {
+      "model": "openai-codex/gpt-4o-mini",
+      "systemPrompt": "당신은 작업 계획 전문가입니다. 사용자의 요청을 분석하고 구조화된 실행 계획을 만드세요.\n\n출력 형식:\n1. 작업 분석 (무엇을 해야 하는지)\n2. 실행 단계 (번호 목록)\n3. 예상 결과\n4. 주의사항\n\n실행하지 마세요. 계획만 수립하세요. 응답은 한국어로 작성하세요.",
+      "timeoutMs": 15000
+    },
+    "executor": {
+      "model": "openai-codex/gpt-5.4",
+      "systemPrompt": "당신은 작업 실행 전문가입니다. 아래 계획을 따라 사용자의 요청을 실행하세요.\n\n[계획]\n{plan}\n\n[원본 요청]\n{request}\n\n계획에 따라 실행하고 최종 결과를 제공하세요. 응답은 한국어로 작성하세요.",
+      "timeoutMs": 55000
+    }
+  }
+}

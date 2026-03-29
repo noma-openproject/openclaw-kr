@@ -1,0 +1,11 @@
+{
+  "name": "@openclaw-kr/hwp-convert",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HWP 문서를 JSON/Markdown/HTML/텍스트로 변환하는 스킬",
+  "main": "lib/converter.js",
+  "dependencies": {
+    "@ohah/hwpjs": "0.1.0-rc.10"
+  },
+  "license": "MIT"
+}

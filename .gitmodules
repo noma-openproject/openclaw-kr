@@ -1,0 +1,3 @@
+[submodule "packages/k-skill"]
+	path = packages/k-skill
+	url = https://github.com/NomaDamas/k-skill.git

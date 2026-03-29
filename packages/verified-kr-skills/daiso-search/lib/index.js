@@ -1,0 +1,1 @@
+../../../k-skill/packages/daiso-product-search/src/index.js
