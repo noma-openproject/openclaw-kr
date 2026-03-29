@@ -9,6 +9,12 @@ const { SessionWatcher } = require('./session-watcher');
 const { loadTeamConfig, saveTeamConfig } = require('./team-orchestrator');
 const { listHandoffs, readHandoff } = require('./handoff-writer');
 const { ChannelRegistry } = require('./channel-registry');
+const {
+  ensureConfig,
+  startGateway,
+  stopGateway,
+  getStartupStatus,
+} = require('./gateway-starter');
 
 const DASHBOARD_PORT = 18789;
 const DASHBOARD_URL = `http://localhost:${DASHBOARD_PORT}`;
@@ -328,7 +334,19 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 // --- 앱 라이프사이클 ---
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  // 1. 초기 설정 자동 생성 (첫 실행 시)
+  ensureConfig();
+
+  // 2. Gateway 자동시작
+  const gatewayOk = await startGateway();
+  if (!gatewayOk) {
+    console.warn('[launcher] Gateway 자동시작 실패 — fallback으로 진행');
+  }
+
+  // 3. 메인 윈도우 생성
+  createWindow();
+});
 
 // macOS: dock 유지 (창 닫아도 앱 종료하지 않음)
 app.on('window-all-closed', () => {
@@ -408,5 +426,9 @@ function cleanupBrowserResources() {
 // 종료 시 정리
 app.on('before-quit', () => {
   watcher.stop();
+  stopGateway();
   cleanupBrowserResources();
 });
+
+// --- Gateway 상태 IPC ---
+ipcMain.handle('gateway:getStartupStatus', () => getStartupStatus());

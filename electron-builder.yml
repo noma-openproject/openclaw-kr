@@ -16,6 +16,8 @@ files:
   - node_modules/**/*
 
 asar: true
+asarUnpack:
+  - "node_modules/openclaw/**"
 
 mac:
   category: public.app-category.developer-tools

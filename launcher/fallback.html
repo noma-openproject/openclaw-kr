@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>openclaw-kr — 연결 대기</title>
+  <title>Noma — 연결 대기</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -16,23 +16,30 @@
       height: 100vh;
       text-align: center;
     }
-    .container { max-width: 480px; padding: 2rem; }
+    .container { max-width: 520px; padding: 2rem; }
     .logo { font-size: 3rem; margin-bottom: 1rem; }
     h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.5rem; color: #fff; }
     .subtitle { font-size: 0.95rem; color: #888; margin-bottom: 2rem; line-height: 1.6; }
-    .command-box {
+    .spinner {
+      width: 32px; height: 32px; margin: 0 auto 1.5rem;
+      border: 3px solid #333; border-top-color: #2563eb;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box {
       background: #1a1a1a;
-      border: 1px solid #333;
+      border: 1px solid #dc2626;
       border-radius: 8px;
       padding: 1rem 1.2rem;
       font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.85rem;
-      color: #4ade80;
+      font-size: 0.8rem;
+      color: #f87171;
       text-align: left;
       margin-bottom: 1.5rem;
-      user-select: all;
+      max-height: 120px;
+      overflow-y: auto;
+      display: none;
     }
-    .command-box .comment { color: #666; }
     .retry-btn {
       background: #2563eb;
       color: #fff;
@@ -46,27 +53,65 @@
     .retry-btn:hover { background: #1d4ed8; }
     .status { font-size: 0.8rem; color: #666; margin-top: 1rem; }
     .status.online { color: #4ade80; }
+    .status.error { color: #f87171; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="logo">🦞</div>
-    <h1>OpenClaw Gateway에 연결할 수 없습니다</h1>
-    <p class="subtitle">
-      데스크톱 앱을 사용하려면 먼저 OpenClaw Gateway를 시작해야 합니다.
+    <h1 id="title">Gateway를 시작하는 중입니다...</h1>
+    <p class="subtitle" id="subtitle">
+      잠시만 기다려주세요. OpenClaw Gateway가 준비되면 자동으로 연결됩니다.
     </p>
-    <div class="command-box">
-      <div class="comment"># 터미널에서 실행</div>
-      <div>npx openclaw gateway --port 18789</div>
-    </div>
-    <button class="retry-btn" onclick="retry()">다시 연결</button>
-    <div class="status" id="status">Gateway 응답 대기 중...</div>
+    <div class="spinner" id="spinner"></div>
+    <div class="error-box" id="errorBox"></div>
+    <button class="retry-btn hidden" id="retryBtn" onclick="retry()">다시 시도</button>
+    <div class="status" id="status">Gateway 시작 대기 중...</div>
   </div>
   <script>
-    async function retry() {
-      const statusEl = document.getElementById('status');
+    const titleEl = document.getElementById('title');
+    const subtitleEl = document.getElementById('subtitle');
+    const spinnerEl = document.getElementById('spinner');
+    const errorBoxEl = document.getElementById('errorBox');
+    const retryBtnEl = document.getElementById('retryBtn');
+    const statusEl = document.getElementById('status');
+
+    function showStarting() {
+      titleEl.textContent = 'Gateway를 시작하는 중입니다...';
+      subtitleEl.textContent = '잠시만 기다려주세요. OpenClaw Gateway가 준비되면 자동으로 연결됩니다.';
+      spinnerEl.style.display = 'block';
+      errorBoxEl.style.display = 'none';
+      retryBtnEl.classList.add('hidden');
+      statusEl.textContent = 'Gateway 시작 대기 중...';
+      statusEl.className = 'status';
+    }
+
+    function showFailed(errorMsg) {
+      titleEl.textContent = 'Gateway 시작에 실패했습니다';
+      subtitleEl.textContent = '아래 오류를 확인하고 다시 시도해주세요.';
+      spinnerEl.style.display = 'none';
+      if (errorMsg) {
+        errorBoxEl.textContent = errorMsg;
+        errorBoxEl.style.display = 'block';
+      }
+      retryBtnEl.classList.remove('hidden');
+      statusEl.textContent = 'Gateway를 시작할 수 없습니다';
+      statusEl.className = 'status error';
+    }
+
+    function showConnecting() {
+      titleEl.textContent = 'Gateway에 연결하는 중...';
+      subtitleEl.textContent = 'Gateway가 응답하기를 기다리고 있습니다.';
+      spinnerEl.style.display = 'block';
+      errorBoxEl.style.display = 'none';
+      retryBtnEl.classList.add('hidden');
       statusEl.textContent = '연결 시도 중...';
       statusEl.className = 'status';
+    }
+
+    async function retry() {
+      showConnecting();
       try {
         const status = await window.openclawKR.getStatus();
         if (status.online) {
@@ -76,12 +121,30 @@
             window.location.href = 'http://localhost:' + status.port;
           }, 500);
         } else {
-          statusEl.textContent = 'Gateway가 아직 응답하지 않습니다. 시작 후 다시 시도하세요.';
+          showFailed('Gateway가 아직 응답하지 않습니다.');
         }
       } catch {
-        statusEl.textContent = '연결 실패. Gateway가 실행 중인지 확인하세요.';
+        showFailed('연결 실패. 앱을 재시작해보세요.');
       }
     }
+
+    // 시작 시 상태 확인
+    async function checkStartupStatus() {
+      try {
+        const { status, error } = await window.openclawKR.gateway.getStartupStatus();
+        if (status === 'starting') {
+          showStarting();
+        } else if (status === 'failed') {
+          showFailed(error || 'Gateway 시작 실패');
+        } else if (status === 'running') {
+          showConnecting();
+        }
+      } catch {
+        showConnecting();
+      }
+    }
+
+    checkStartupStatus();
 
     // 5초마다 자동 재시도
     setInterval(async () => {

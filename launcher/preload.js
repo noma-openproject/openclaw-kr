@@ -30,6 +30,10 @@ contextBridge.exposeInMainWorld('openclawKR', {
     getHandoffDetail: (/** @type {string} */ id) =>
       ipcRenderer.invoke('openclaw:team:handoff-detail', id),
   },
+  // Gateway 시작 상태 (Day 2: 자동시작)
+  gateway: {
+    getStartupStatus: () => ipcRenderer.invoke('gateway:getStartupStatus'),
+  },
   // 채널 바인딩 (Phase 1: 세션 바인딩)
   channel: {
     bind: (/** @type {string} */ platform, /** @type {string} */ userId, /** @type {string} */ sessionId, /** @type {string} */ threadId) =>
