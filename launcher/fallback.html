@@ -55,6 +55,15 @@
     .status.online { color: #4ade80; }
     .status.error { color: #f87171; }
     .hidden { display: none; }
+    .install-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: #60a5fa;
+      text-decoration: underline;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .install-link:hover { color: #93bbfd; }
   </style>
 </head>
 <body>
@@ -67,6 +76,7 @@
     <div class="spinner" id="spinner"></div>
     <div class="error-box" id="errorBox"></div>
     <button class="retry-btn hidden" id="retryBtn" onclick="retry()">다시 시도</button>
+    <a class="install-link hidden" id="installLink" href="https://nodejs.org" target="_blank">Node.js 설치하러 가기 →</a>
     <div class="status" id="status">Gateway 시작 대기 중...</div>
   </div>
   <script>
@@ -87,6 +97,8 @@
       statusEl.className = 'status';
     }
 
+    const installLinkEl = document.getElementById('installLink');
+
     function showFailed(errorMsg) {
       titleEl.textContent = 'Gateway 시작에 실패했습니다';
       subtitleEl.textContent = '아래 오류를 확인하고 다시 시도해주세요.';
@@ -96,6 +108,12 @@
         errorBoxEl.style.display = 'block';
       }
       retryBtnEl.classList.remove('hidden');
+      // Node.js 설치 필요 시 링크 표시
+      if (errorMsg && errorMsg.includes('Node.js')) {
+        installLinkEl.classList.remove('hidden');
+      } else {
+        installLinkEl.classList.add('hidden');
+      }
       statusEl.textContent = 'Gateway를 시작할 수 없습니다';
       statusEl.className = 'status error';
     }

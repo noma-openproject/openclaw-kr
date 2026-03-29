@@ -1,6 +1,6 @@
 // launcher/gateway-starter.js
 // OpenClaw gateway 프로세스 자동시작 + lifecycle 관리
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -11,6 +11,8 @@ const HEALTH_CHECK_INTERVAL_MS = 1500;
 const HEALTH_CHECK_TIMEOUT_MS = 60000;
 const RESTART_DELAY_MS = 3000;
 const MAX_RESTART_COUNT = 2;
+const MIN_NODE_MAJOR = 22;
+const MIN_NODE_MINOR = 12;
 
 /** @type {import('child_process').ChildProcess | null} */
 let gatewayProcess = null;
@@ -47,6 +49,44 @@ function resolveGatewayBin() {
     );
   }
   return path.join(__dirname, '..', 'node_modules', 'openclaw', 'openclaw.mjs');
+}
+
+/**
+ * 시스템에 설치된 Node.js 바이너리 탐지
+ * Electron 33 내장 Node는 20.18 → openclaw은 22.12+ 필요 → 시스템 Node 사용
+ * @returns {string|null} node 바이너리 경로 또는 null
+ */
+function resolveNodeBin() {
+  const cmd = process.platform === 'win32' ? 'where node' : 'which node';
+  try {
+    const nodePath = execSync(cmd, { encoding: 'utf8', timeout: 5000 }).trim();
+    // Windows의 where는 여러 줄 반환할 수 있음 — 첫 번째만
+    const firstPath = nodePath.split(/\r?\n/)[0].trim();
+    if (!firstPath) return null;
+
+    // 버전 확인
+    const versionStr = execSync(`"${firstPath}" --version`, {
+      encoding: 'utf8',
+      timeout: 5000,
+    }).trim(); // "v22.14.0"
+    const match = versionStr.match(/^v(\d+)\.(\d+)/);
+    if (!match) return null;
+
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    if (major > MIN_NODE_MAJOR || (major === MIN_NODE_MAJOR && minor >= MIN_NODE_MINOR)) {
+      console.log(`[gateway-starter] 시스템 Node 발견: ${firstPath} (${versionStr})`);
+      return firstPath;
+    }
+
+    console.warn(
+      `[gateway-starter] 시스템 Node ${versionStr} < 요구 v${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}`,
+    );
+    return null;
+  } catch {
+    console.warn('[gateway-starter] 시스템 Node를 찾을 수 없습니다');
+    return null;
+  }
 }
 
 /**
@@ -142,13 +182,24 @@ async function startGateway() {
     return false;
   }
 
-  console.log(`[gateway-starter] Gateway 시작: ${binPath}`);
+  // 시스템 Node 탐지 (Electron 33 내장 Node 20.18 < openclaw 요구 22.12+)
+  const nodeBin = resolveNodeBin();
+
+  if (!nodeBin) {
+    startupStatus = 'failed';
+    lastError =
+      'Node.js 22.12 이상이 필요합니다. https://nodejs.org 에서 설치해주세요.';
+    console.error(`[gateway-starter] ${lastError}`);
+    return false;
+  }
+
+  console.log(`[gateway-starter] Gateway 시작: ${nodeBin} ${binPath}`);
 
   try {
-    gatewayProcess = spawn(process.execPath, [binPath, 'gateway', '--port', String(GATEWAY_PORT)], {
+    gatewayProcess = spawn(nodeBin, [binPath, 'gateway', '--port', String(GATEWAY_PORT)], {
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: false,
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      env: { ...process.env },
     });
 
     // stdout/stderr 로그 수집
@@ -192,7 +243,7 @@ async function startGateway() {
     }
 
     startupStatus = 'failed';
-    lastError = 'Gateway가 제한 시간 내에 응답하지 않았습니다';
+    lastError = lastError || 'Gateway가 제한 시간 내에 응답하지 않았습니다';
     console.error(`[gateway-starter] ${lastError}`);
     return false;
   } catch (/** @type {any} */ err) {
@@ -229,6 +280,7 @@ function getStartupStatus() {
 
 module.exports = {
   resolveGatewayBin,
+  resolveNodeBin,
   ensureConfig,
   checkHealth,
   waitForGateway,
