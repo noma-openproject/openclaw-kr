@@ -9,7 +9,7 @@
 
 ## 1. 다운로드
 
-[GitHub Release 페이지](https://github.com/noma-openproject/openclaw-kr/releases/tag/v0.1.0-alpha)에서 운영체제에 맞는 파일을 다운로드하세요.
+[GitHub Release 페이지](https://github.com/noma-openproject/openclaw-kr/releases/tag/v0.1.0-alpha.2)에서 운영체제에 맞는 파일을 다운로드하세요.
 
 | OS | 파일명 | 비고 |
 |---|---|---|
