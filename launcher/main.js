@@ -280,12 +280,16 @@ async function createWindow() {
     },
   });
 
-  // gateway 토큰을 URL 파라미터로 전달
-  const token = readGatewayToken();
-  const dashboardUrl = token
-    ? `${DASHBOARD_URL}?token=${token}`
-    : DASHBOARD_URL;
-  win.loadURL(dashboardUrl);
+  // 첫 실행 → 온보딩, 이후 → 대시보드
+  if (!isOnboardingDone()) {
+    win.loadFile(path.join(__dirname, 'onboarding.html'));
+  } else {
+    const token = readGatewayToken();
+    const dashboardUrl = token
+      ? `${DASHBOARD_URL}?token=${token}`
+      : DASHBOARD_URL;
+    win.loadURL(dashboardUrl);
+  }
 
   // Browser Guard: URL 내비게이션 필터링
   win.webContents.on('will-navigate', (event, url) => {
@@ -432,3 +436,25 @@ app.on('before-quit', () => {
 
 // --- Gateway 상태 IPC ---
 ipcMain.handle('gateway:getStartupStatus', () => getStartupStatus());
+
+// --- 온보딩 IPC ---
+const ONBOARDING_FLAG = path.join(os.homedir(), '.openclaw', 'onboarding-done');
+
+function isOnboardingDone() {
+  return fs.existsSync(ONBOARDING_FLAG);
+}
+
+ipcMain.handle('onboarding:isDone', () => isOnboardingDone());
+
+ipcMain.handle('onboarding:complete', () => {
+  const dir = path.dirname(ONBOARDING_FLAG);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(ONBOARDING_FLAG, new Date().toISOString(), 'utf8');
+  // 대시보드로 전환
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win) {
+    const token = readGatewayToken();
+    const url = token ? `${DASHBOARD_URL}?token=${token}` : DASHBOARD_URL;
+    win.loadURL(url);
+  }
+});

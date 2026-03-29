@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noma — 시작하기</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container { max-width: 560px; padding: 2.5rem 2rem; text-align: center; }
+
+    /* 웰컴 섹션 */
+    .logo { font-size: 3.5rem; margin-bottom: 0.8rem; }
+    h1 { font-size: 1.6rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
+    .slogan { font-size: 1rem; color: #2563eb; font-weight: 500; margin-bottom: 1.8rem; }
+    .features {
+      display: flex; gap: 1.2rem; justify-content: center;
+      margin-bottom: 2.5rem; flex-wrap: wrap;
+    }
+    .feature {
+      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
+      padding: 0.8rem 1rem; flex: 1; min-width: 140px; text-align: center;
+    }
+    .feature-icon { font-size: 1.4rem; margin-bottom: 0.3rem; }
+    .feature-label { font-size: 0.8rem; color: #aaa; line-height: 1.4; }
+
+    /* 샘플 섹션 */
+    .section-title {
+      font-size: 1.1rem; font-weight: 600; color: #fff;
+      margin-bottom: 1rem; text-align: left;
+    }
+    .samples { margin-bottom: 2rem; }
+    .sample {
+      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
+      padding: 0.9rem 1rem; margin-bottom: 0.7rem;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: border-color 0.2s;
+    }
+    .sample:hover { border-color: #2563eb; }
+    .sample-left { display: flex; align-items: center; gap: 0.7rem; text-align: left; }
+    .sample-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .sample-prompt { font-size: 0.9rem; color: #ddd; }
+    .sample-desc { font-size: 0.75rem; color: #666; margin-top: 0.15rem; }
+    .copy-btn {
+      background: #2a2a2a; color: #888; border: 1px solid #333;
+      border-radius: 6px; padding: 0.35rem 0.7rem; font-size: 0.75rem;
+      cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    }
+    .copy-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .copy-btn.copied { background: #16a34a; color: #fff; border-color: #16a34a; }
+
+    /* 안내 */
+    .hint {
+      font-size: 0.8rem; color: #555; margin-bottom: 2rem; line-height: 1.5;
+    }
+
+    /* 시작 버튼 */
+    .start-btn {
+      background: #2563eb; color: #fff; border: none; border-radius: 8px;
+      padding: 0.8rem 2.5rem; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .start-btn:hover { background: #1d4ed8; }
+
+    .footer { font-size: 0.75rem; color: #444; margin-top: 1.5rem; }
+    .footer a { color: #2563eb; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 웰컴 -->
+    <div class="logo">🦞</div>
+    <h1>Noma에 오신 것을 환영합니다</h1>
+    <p class="slogan">말이 아니라, 실행.</p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">💬</div>
+        <div class="feature-label">카카오톡으로<br>원격 제어</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🇰🇷</div>
+        <div class="feature-label">한국 서비스<br>스킬 11개</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-label">보안 기본값<br>내장</div>
+      </div>
+    </div>
+
+    <!-- 샘플 -->
+    <div class="section-title">지금 바로 해보세요</div>
+    <p class="hint">아래 프롬프트를 복사해서 대시보드에 붙여넣어 보세요. API 키 없이 바로 동작합니다.</p>
+
+    <div class="samples">
+      <div class="sample">
+        <div class="sample-left">
+          <span class="sample-icon">🎱</span>
+          <div>
+            <div class="sample-prompt">이번 주 로또 당첨번호 알려줘</div>
+            <div class="sample-desc">로또 결과 스킬 — API 키 불필요</div>
+          </div>
+        </div>
+        <button class="copy-btn" onclick="copyPrompt(this, '이번 주 로또 당첨번호 알려줘')">복사</button>
+      </div>
+
+      <div class="sample">
+        <div class="sample-left">
+          <span class="sample-icon">⚾</span>
+          <div>
+            <div class="sample-prompt">오늘 KBO 경기 결과 알려줘</div>
+            <div class="sample-desc">KBO 경기 스킬 — API 키 불필요</div>
+          </div>
+        </div>
+        <button class="copy-btn" onclick="copyPrompt(this, '오늘 KBO 경기 결과 알려줘')">복사</button>
+      </div>
+
+      <div class="sample">
+        <div class="sample-left">
+          <span class="sample-icon">🌫️</span>
+          <div>
+            <div class="sample-prompt">서울 미세먼지 알려줘</div>
+            <div class="sample-desc">미세먼지 스킬 — API 키 불필요</div>
+          </div>
+        </div>
+        <button class="copy-btn" onclick="copyPrompt(this, '서울 미세먼지 알려줘')">복사</button>
+      </div>
+    </div>
+
+    <!-- 시작 -->
+    <button class="start-btn" onclick="startApp()">시작하기</button>
+
+    <div class="footer">
+      카카오톡에서 <a href="#">@noma-kr</a> 채널을 추가하면 모바일에서도 사용할 수 있습니다.
+    </div>
+  </div>
+
+  <script>
+    function copyPrompt(btn, text) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '복사됨';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '복사';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    }
+
+    async function startApp() {
+      try {
+        await window.openclawKR.onboarding.complete();
+      } catch {
+        // IPC 실패해도 진행
+      }
+    }
+  </script>
+</body>
+</html>

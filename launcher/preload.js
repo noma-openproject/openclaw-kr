@@ -34,6 +34,11 @@ contextBridge.exposeInMainWorld('openclawKR', {
   gateway: {
     getStartupStatus: () => ipcRenderer.invoke('gateway:getStartupStatus'),
   },
+  // 온보딩 (Day 3)
+  onboarding: {
+    isDone: () => ipcRenderer.invoke('onboarding:isDone'),
+    complete: () => ipcRenderer.invoke('onboarding:complete'),
+  },
   // 채널 바인딩 (Phase 1: 세션 바인딩)
   channel: {
     bind: (/** @type {string} */ platform, /** @type {string} */ userId, /** @type {string} */ sessionId, /** @type {string} */ threadId) =>
