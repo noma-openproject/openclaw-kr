@@ -3,7 +3,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('openclawKR', {
-  version: '0.1.0-alpha.4',
+  version: '0.1.0-alpha.6',
   // gateway 상태 확인 (main process에서 health check 수행)
   getStatus: () => ipcRenderer.invoke('openclaw:status'),
   // 실행 영수증 + 비용 가시성 (Phase 1-B)
