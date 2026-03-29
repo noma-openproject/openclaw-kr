@@ -1,6 +1,6 @@
 {
   "name": "openclaw-kr",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "한국형 AI 에이전트 운영 셸 — OpenClaw downstream 배포판",
   "main": "launcher/main.js",
   "scripts": {
@@ -52,7 +52,7 @@
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.50.0",
-    "electron": "^33.0.0",
+    "electron": "^35.7.5",
     "electron-builder": "^26.8.1",
     "eslint": "^9.0.0",
     "prettier": "^3.5.0",

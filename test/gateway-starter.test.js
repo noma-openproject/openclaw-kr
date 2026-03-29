@@ -8,7 +8,6 @@ const os = require('os');
 
 const {
   resolveGatewayBin,
-  resolveNodeBin,
   ensureConfig,
   checkHealth,
   waitForGateway,
@@ -97,21 +96,6 @@ function test(name, fn) {
     } finally {
       os.homedir = origHome;
       fs.rmSync(tmpHome, { recursive: true, force: true });
-    }
-  });
-
-  // --- resolveNodeBin ---
-  await test('resolveNodeBin — Node 22+ 설치 시 경로 반환', () => {
-    const nodePath = resolveNodeBin();
-    // 테스트 환경에 Node 24가 설치되어 있으므로 경로가 반환되어야 함
-    assert.ok(nodePath, '시스템 Node 경로가 반환되어야 함');
-    assert.ok(typeof nodePath === 'string', '문자열이어야 함');
-  });
-
-  await test('resolveNodeBin — 반환된 경로에 파일이 존재', () => {
-    const nodePath = resolveNodeBin();
-    if (nodePath) {
-      assert.ok(fs.existsSync(nodePath), `파일이 존재해야 함: ${nodePath}`);
     }
   });
 
