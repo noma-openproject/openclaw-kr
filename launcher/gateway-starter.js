@@ -12,6 +12,28 @@ const HEALTH_CHECK_TIMEOUT_MS = 60000;
 const RESTART_DELAY_MS = 3000;
 const MAX_RESTART_COUNT = 2;
 
+// Gateway 로그 파일 경로 (~/.openclaw/gateway.log)
+const LOG_PATH = path.join(os.homedir(), '.openclaw', 'gateway.log');
+const MAX_LOG_BYTES = 512 * 1024; // 512KB 초과 시 초기화
+
+/**
+ * Gateway 로그를 파일에 기록
+ * @param {string} line
+ */
+function writeLog(line) {
+  try {
+    const logDir = path.dirname(LOG_PATH);
+    if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+    // 파일 크기 초과 시 초기화
+    try {
+      if (fs.statSync(LOG_PATH).size > MAX_LOG_BYTES) {
+        fs.writeFileSync(LOG_PATH, '', 'utf8');
+      }
+    } catch { /* 파일 없으면 무시 */ }
+    fs.appendFileSync(LOG_PATH, `[${new Date().toISOString()}] ${line}\n`, 'utf8');
+  } catch { /* 로그 실패는 무시 */ }
+}
+
 /** @type {import('child_process').ChildProcess | null} */
 let gatewayProcess = null;
 let restartCount = 0;
@@ -143,6 +165,8 @@ async function startGateway() {
     return false;
   }
 
+  writeLog(`Gateway 시작: ${binPath}`);
+  writeLog(`Node: ${process.version}, execPath: ${process.execPath}`);
   console.log(`[gateway-starter] Gateway 시작: ${binPath}`);
 
   try {
@@ -156,7 +180,10 @@ async function startGateway() {
     if (gatewayProcess.stdout) {
       gatewayProcess.stdout.on('data', (data) => {
         const msg = data.toString().trim();
-        if (msg) console.log(`[gateway] ${msg}`);
+        if (msg) {
+          console.log(`[gateway] ${msg}`);
+          writeLog(`[stdout] ${msg}`);
+        }
       });
     }
 
@@ -165,13 +192,16 @@ async function startGateway() {
         const msg = data.toString().trim();
         if (msg) {
           console.error(`[gateway:err] ${msg}`);
+          writeLog(`[stderr] ${msg}`);
           lastError = msg;
         }
       });
     }
 
     gatewayProcess.on('exit', (code) => {
-      console.log(`[gateway-starter] Gateway 프로세스 종료 (code: ${code})`);
+      const msg = `Gateway 프로세스 종료 (code: ${code})`;
+      console.log(`[gateway-starter] ${msg}`);
+      writeLog(msg);
       gatewayProcess = null;
 
       if (startupStatus === 'running' && restartCount < MAX_RESTART_COUNT) {
@@ -195,6 +225,7 @@ async function startGateway() {
     startupStatus = 'failed';
     lastError = lastError || 'Gateway가 제한 시간 내에 응답하지 않았습니다';
     console.error(`[gateway-starter] ${lastError}`);
+    writeLog(`[FAIL] ${lastError}`);
     return false;
   } catch (/** @type {any} */ err) {
     startupStatus = 'failed';
@@ -237,4 +268,5 @@ module.exports = {
   stopGateway,
   getStartupStatus,
   GATEWAY_PORT,
+  LOG_PATH,
 };

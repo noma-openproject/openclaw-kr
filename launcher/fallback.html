@@ -89,7 +89,7 @@
 
     function showFailed(errorMsg) {
       titleEl.textContent = 'Gateway 시작에 실패했습니다';
-      subtitleEl.textContent = '아래 오류를 확인하고 다시 시도해주세요.';
+      subtitleEl.innerHTML = '아래 오류를 확인하고 다시 시도해주세요.<br><small style="color:#666">상세 로그: <code style="font-size:0.75rem">~/.openclaw/gateway.log</code></small>';
       spinnerEl.style.display = 'none';
       if (errorMsg) {
         errorBoxEl.textContent = errorMsg;

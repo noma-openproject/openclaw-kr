@@ -337,6 +337,22 @@ app.on('web-contents-created', (_event, contents) => {
   });
 });
 
+// --- Single Instance Lock (Windows: 두 번째 실행 시 기존 창 포커스) ---
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  // 이미 실행 중인 인스턴스가 있음 → 조용히 종료
+  app.quit();
+}
+
+app.on('second-instance', () => {
+  // 두 번째 실행 시도 → 기존 창을 포커스
+  const win = BrowserWindow.getAllWindows()[0];
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  }
+});
+
 // --- 앱 라이프사이클 ---
 app.whenReady().then(async () => {
   // 1. 초기 설정 자동 생성 (첫 실행 시)
