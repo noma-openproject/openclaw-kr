@@ -1,4 +1,4 @@
-# Noma v0.1.0-alpha.6
+# Noma v0.1.0-alpha.7
 
 > 말이 아니라, 실행.
 
