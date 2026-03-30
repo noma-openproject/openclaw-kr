@@ -5,6 +5,7 @@ const { app, BrowserWindow, BrowserView, ipcMain, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { spawn, execSync } = require('child_process');
 const { SessionWatcher } = require('./session-watcher');
 const { loadTeamConfig, saveTeamConfig } = require('./team-orchestrator');
 const { listHandoffs, readHandoff } = require('./handoff-writer');
@@ -19,6 +20,148 @@ const {
 const DASHBOARD_PORT = 18789;
 const DASHBOARD_URL = `http://localhost:${DASHBOARD_PORT}`;
 const RECEIPT_PANEL_WIDTH = 320;
+const KAKAO_PORT = 3001;
+const NGROK_DOMAIN = 'nonexhortative-gwenn-unbreaded.ngrok-free.dev';
+
+// --- 카카오 자동시작 상태 ---
+/** @type {import('child_process').ChildProcess|null} */
+let kakaoProcess = null;
+/** @type {import('child_process').ChildProcess|null} */
+let ngrokProcess = null;
+/** @type {'off'|'starting'|'running'|'error'} */
+let kakaoStatus = 'off';
+/** @type {string} */
+let kakaoError = '';
+
+/**
+ * ngrok이 시스템에 설치되어 있는지 확인
+ * @returns {boolean}
+ */
+function isNgrokInstalled() {
+  try {
+    execSync('ngrok version', { stdio: 'ignore', timeout: 5000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 카카오 스킬 서버 시작 (child_process.spawn)
+ * @returns {boolean} 시작 성공 여부
+ */
+function startKakaoServer() {
+  const entryPath = path.join(__dirname, '..', 'plugins', 'kakao-entry', 'index.js');
+  if (!fs.existsSync(entryPath)) {
+    console.warn('[kakao] 스킬 서버 파일 없음:', entryPath);
+    kakaoError = '카카오 스킬 서버 파일을 찾을 수 없습니다';
+    return false;
+  }
+
+  try {
+    kakaoProcess = spawn(process.execPath, [entryPath], {
+      env: { ...process.env, KAKAO_SKILL_PORT: String(KAKAO_PORT), ELECTRON_RUN_AS_NODE: '1' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: false,
+    });
+
+    kakaoProcess.stdout?.on('data', (d) => {
+      const msg = d.toString().trim();
+      if (msg) console.log(`[kakao] ${msg}`);
+    });
+    kakaoProcess.stderr?.on('data', (d) => {
+      const msg = d.toString().trim();
+      if (msg) console.error(`[kakao:err] ${msg}`);
+    });
+    kakaoProcess.on('exit', (code) => {
+      console.log(`[kakao] 프로세스 종료 (code: ${code})`);
+      kakaoProcess = null;
+      if (kakaoStatus === 'running') kakaoStatus = 'error';
+    });
+
+    console.log(`[kakao] 스킬 서버 시작 (port ${KAKAO_PORT})`);
+    return true;
+  } catch (/** @type {any} */ e) {
+    console.error(`[kakao] 시작 실패: ${e.message}`);
+    kakaoError = e.message;
+    return false;
+  }
+}
+
+/**
+ * ngrok 터널 시작
+ * @returns {boolean} 시작 성공 여부
+ */
+function startNgrokTunnel() {
+  if (!isNgrokInstalled()) {
+    console.warn('[kakao] ngrok 미설치 — 카카오 원격 비활성');
+    kakaoError = 'ngrok이 설치되어 있지 않습니다';
+    return false;
+  }
+
+  try {
+    ngrokProcess = spawn('ngrok', ['http', `--url=${NGROK_DOMAIN}`, String(KAKAO_PORT)], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: false,
+    });
+
+    ngrokProcess.stdout?.on('data', (d) => {
+      const msg = d.toString().trim();
+      if (msg) console.log(`[ngrok] ${msg}`);
+    });
+    ngrokProcess.stderr?.on('data', (d) => {
+      const msg = d.toString().trim();
+      if (msg) console.error(`[ngrok:err] ${msg}`);
+    });
+    ngrokProcess.on('exit', (code) => {
+      console.log(`[ngrok] 프로세스 종료 (code: ${code})`);
+      ngrokProcess = null;
+    });
+
+    console.log(`[kakao] ngrok 터널 시작 (${NGROK_DOMAIN} → localhost:${KAKAO_PORT})`);
+    return true;
+  } catch (/** @type {any} */ e) {
+    console.error(`[ngrok] 시작 실패: ${e.message}`);
+    kakaoError = e.message;
+    return false;
+  }
+}
+
+/**
+ * 카카오 스킬 서버 + ngrok 자동시작
+ * gateway가 성공한 후에 호출. 실패해도 앱은 정상 동작.
+ */
+function startKakaoStack() {
+  kakaoStatus = 'starting';
+
+  const serverOk = startKakaoServer();
+  if (!serverOk) {
+    kakaoStatus = 'error';
+    return;
+  }
+
+  const tunnelOk = startNgrokTunnel();
+  kakaoStatus = tunnelOk ? 'running' : 'error';
+  if (!tunnelOk) {
+    console.warn('[kakao] 터널 없이 스킬 서버만 동작 (로컬 전용)');
+  }
+}
+
+/**
+ * 카카오 프로세스 정리
+ */
+function stopKakaoStack() {
+  if (ngrokProcess) {
+    try { ngrokProcess.kill(); } catch { /* ignore */ }
+    ngrokProcess = null;
+  }
+  if (kakaoProcess) {
+    try { kakaoProcess.kill(); } catch { /* ignore */ }
+    kakaoProcess = null;
+  }
+  kakaoStatus = 'off';
+  console.log('[kakao] 프로세스 정리 완료');
+}
 
 // --- Browser Guard: URL 필터링 ---
 const BLOCKED_PROTOCOLS = ['chrome:', 'chrome-extension:', 'data:', 'javascript:'];
@@ -125,6 +268,17 @@ ipcMain.handle('openclaw:team:handoffs', (_event, limit = 10) => {
 
 ipcMain.handle('openclaw:team:handoff-detail', (_event, id) => {
   return readHandoff(id);
+});
+
+// --- IPC: 카카오 상태 ---
+ipcMain.handle('openclaw:kakao:status', () => {
+  return {
+    status: kakaoStatus,
+    error: kakaoError,
+    server: !!kakaoProcess,
+    tunnel: !!ngrokProcess,
+    domain: NGROK_DOMAIN,
+  };
 });
 
 // --- IPC: 채널 바인딩 ---
@@ -364,7 +518,14 @@ app.whenReady().then(async () => {
     console.warn('[launcher] Gateway 자동시작 실패 — fallback으로 진행');
   }
 
-  // 3. 메인 윈도우 생성
+  // 3. 카카오 스킬 서버 + ngrok 자동시작 (gateway 성공 후, 실패해도 앱은 동작)
+  if (gatewayOk) {
+    startKakaoStack();
+  } else {
+    console.warn('[launcher] Gateway 미시작 → 카카오 스킵');
+  }
+
+  // 4. 메인 윈도우 생성
   createWindow();
 });
 
@@ -446,6 +607,7 @@ function cleanupBrowserResources() {
 // 종료 시 정리
 app.on('before-quit', () => {
   watcher.stop();
+  stopKakaoStack();
   stopGateway();
   cleanupBrowserResources();
 });

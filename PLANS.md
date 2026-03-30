@@ -253,7 +253,44 @@
 | 2 | 원클릭 설치(터미널 0회) + gateway 자동시작 + 에러 한국어화 | 더블클릭→첫 대화 | [x] |
 | 3 | 온보딩 화면 + API키 없이 되는 데모(로또/KBO/우편번호) + 샘플 3개 | 즉시 체험 | [x] |
 | 4 | 스크린샷 5장 + GIF 2개 + GPters 포스트 초안 + 설치 가이드 | 커뮤니티 자료 | [x] |
-| 5 | 다른 머신 QA + Release 퍼블리시 + GPters 게시 | **첫 외부 노출** | [ ] |
+| 5 | 다른 머신 QA + Release 퍼블리시 + GPters 게시 | **첫 외부 노출** | [ ] 진행 중 |
+
+### Day 5 상세 진행 (2026-03-29~30)
+
+**3대 블로커 수정 — 전부 해결 ✅:**
+1. [x] 터미널 설치 필요 → gateway 자동시작 + 온보딩으로 해결 (Day 2-3)
+2. [x] Gateway 자동시작 실패 → **근본 원인 2개:**
+   - Electron 33(Node 20.18) vs openclaw(Node 22.12+) 버전 불일치 → **Electron 35 업그레이드** (Node 22.16 내장)
+   - `asarUnpack`이 `openclaw/**`만 포함 → openclaw 의존성(tslog 등 46개)이 asar 내부에 갇힘 → **`node_modules/**` 전체 unpack**
+   - 기각: `resolveNodeBin()` (시스템 Node 사용) — "exe만 설치하면 되는 게 아니게 된다"
+3. [x] Windows 빌드 미테스트 → **Windows 실테스트 통과** (대시보드 정상 로드, API 키 미설정 에러만 — 정상)
+4. [x] 두 번째 실행 창 미표시 → `requestSingleInstanceLock()` 추가
+
+**추가 수정:**
+- [x] `~/.openclaw/gateway.log` 로그 파일 기록 (디버깅용)
+- [x] fallback.html에 로그 경로 안내 추가
+
+**릴리즈 히스토리:**
+| 태그 | 변경 | 상태 |
+|---|---|---|
+| v0.1.0-alpha | Day 1 (gateway 자동시작 전) | 구버전 |
+| v0.1.0-alpha.2 | Day 2-4 (Electron 33) | gateway 실패 (Node 버전) |
+| v0.1.0-alpha.3 | resolveNodeBin 접근 | **기각** |
+| v0.1.0-alpha.4 | Electron 35 (Node 22.16) | gateway 실패 (tslog 누락) |
+| v0.1.0-alpha.5 | requestSingleInstanceLock + gateway.log | 파일명 미반영(.4) |
+| v0.1.0-alpha.6 | asarUnpack node_modules/** 전체 | **✅ Windows QA 통과** |
+
+**카카오 자동시작 구현 (Day 5):**
+- [x] main.js에서 카카오 스킬 서버 자동 spawn (gateway 성공 후)
+- [x] ngrok 터널 자동 시작 (미설치 시 graceful 비활성화)
+- [x] 앱 종료 시 kakao+ngrok 프로세스 정리 (stopKakaoStack)
+- [x] IPC: openclaw:kakao:status (상태 조회)
+- [x] preload.js: kakao.getStatus() 브릿지
+- [x] RELEASE_NOTES.md 카카오 자동시작 반영
+
+**남은 작업:**
+- [ ] GIF 녹화 2개 (설치/데모)
+- [ ] GPters 게시 + Release 확정
 
 ---
 

@@ -16,8 +16,8 @@
 
 | 레이어 | 기술 | 비고 |
 |---|---|---|
-| 런타임 | Node.js 24 (22.16+ 최소) | Electron + OpenClaw 공유 |
-| 데스크톱 셸 | Electron 33 (thin launcher) | OpenClaw dashboard 래핑 |
+| 런타임 | Node.js 22.16 (Electron 35 내장) | Electron + OpenClaw 공유 |
+| 데스크톱 셸 | Electron 35 (thin launcher) | OpenClaw dashboard 래핑. Node 22.16 내장 |
 | 코어 | OpenClaw 2026.3.23-2 (npm) | 소스 수정 금지 |
 | Phase 1+ UI | React + TypeScript + Tailwind + shadcn/ui | Antigravity Policy 제3조 |
 | 디자인 | Stitch → Figma+MCP → 구현 → Playwright 검증 | `docs/design-pipeline.md` |
@@ -35,7 +35,7 @@
 
 ## 버전 고정
 
-OpenClaw `2026.3.23-2` / Node 24(22.16+최소) / 브라우저: `existing-session` / ClawhHub 우선.
+OpenClaw `2026.3.23-2` / Electron 35 (Node 22.16 내장) / 브라우저: `existing-session` / ClawhHub 우선.
 설치: `npm install -g openclaw@2026.3.23-2`. 상세: `docs/version-pinning.md`
 
 ## 보안 기본값 (alpha 프로필)
@@ -108,6 +108,16 @@ Token Saver(memorySearch OFF), 실행 영수증(/status), Kakao Safe Mode(write/
 - ~~7순위: DefenseClaw 통합 검토~~ ✅ Phase 1 Day 6
 - **Phase 1 항목 10/10 완료 (100%)**
 
+**커뮤니티 배포 스프린트 Day 5** (2026-03-29~30):
+- 3대 블로커 수정: (1) 터미널 불필요 ✅, (2) Gateway 자동시작 — Electron 33→35 업그레이드로 근본 해결 ✅, (3) Windows 빌드 — CI 완료, 실테스트 진행 중
+- **근본 원인**: Electron 33(Node 20.18) vs openclaw(Node 22.12+) 버전 불일치 → spawn 시 silent exit
+- **기각된 접근**: `resolveNodeBin()` (시스템 Node 사용) — "exe만 설치하면 되는 게 아니게 된다"
+- **채택**: Electron 35 업그레이드 (내장 Node 22.16, 별도 설치 불필요)
+- **추가 원인**: asarUnpack이 openclaw만 포함 → 의존성(tslog 등) 누락 → `node_modules/**` 전체 unpack
+- **추가**: requestSingleInstanceLock (Windows 두 번째 실행 수정) + gateway.log 파일 기록
+- **카카오 자동시작**: main.js에서 gateway 성공 후 카카오 스킬 서버(port 3001) + ngrok 터널 자동 spawn. ngrok 미설치 시 graceful 비활성화.
+- 현재 릴리즈: **v0.1.0-alpha.6** — Windows QA 통과 ✅ (대시보드 정상 로드)
+
 **Phase 1 보충** (2026-03-29, 지식문서 v3.2.4 P0 항목):
 - ✅ P01: Provider Doctor 2.0 (`scripts/provider-doctor.js`) — provider/env/model/Docker/embeddings 한 번에 검사
 - ✅ P07: Memory Healthcheck (`scripts/memory-healthcheck.js`) — indexed files/chunks 확인, 모순 탐지
@@ -125,14 +135,14 @@ Token Saver(memorySearch OFF), 실행 영수증(/status), Kakao Safe Mode(write/
 - `scripts/tunnel-ngrok.sh` — 자동 재시작 + 헬스체크
 - 카카오 스킬 URL: `https://nonexhortative-gwenn-unbreaded.ngrok-free.dev/skill`
 
-**Phase 2-1 Day 1-2** (2026-03-28~29): KR 스킬팩 확장 — 11개 스킬 전체 구현 완료. NomaDamas/k-skill (MIT) 선별 통합 규칙 적용. 공유 유틸(`_shared/` 14t), HWP(`hwp-convert/` 10t), 지하철(`seoul-metro/` 12t), 우편번호(`postal-code/` 10t), SRT(`srt-query/` 16t), 로또(`lotto-results/` k-lotto 6t), KBO(`kbo-scores/` kbo-game 6t), 미세먼지(`fine-dust/` k-skill-proxy 8t), 택배(`delivery-tracking/` CJ/우체국 12t), 블루리본(`blue-ribbon/` k-skill 소스 포크 8t), 다이소(`daiso-search/` k-skill 소스 포크 5t). SKILL.md 전부 k-skill 표준 포맷. 125/125 테스트 통과 (스킬 107 + 카카오 18). lint 0 errors + typecheck clean.
+**Phase 2-1 Day 1-2** (2026-03-28~29): KR 스킬팩 확장 — 11개 스킬 구현 완료 (네이버 검색 포함 총 12개 KR 스킬). NomaDamas/k-skill (MIT) 선별 통합 규칙 적용. 공유 유틸(`_shared/` 14t), HWP(`hwp-convert/` 10t), 지하철(`seoul-metro/` 12t), 우편번호(`postal-code/` 10t), SRT(`srt-query/` 16t), 로또(`lotto-results/` k-lotto 6t), KBO(`kbo-scores/` kbo-game 6t), 미세먼지(`fine-dust/` k-skill-proxy 8t), 택배(`delivery-tracking/` CJ/우체국 12t), 블루리본(`blue-ribbon/` k-skill 소스 포크 8t), 다이소(`daiso-search/` k-skill 소스 포크 5t). SKILL.md 전부 k-skill 표준 포맷. 125/125 테스트 통과 (스킬 107 + 카카오 18). lint 0 errors + typecheck clean.
 
 ## Phase 1~2 로드맵
 
-**Phase 1 (운영 안정화)**: 코어 10/10 완료. 잔여: Channel Reliability Kit, Delta Card UI, Approve&Run 카드, chrome:// blocklist, 3.24 업그레이드, Windows 전략 결정.
+**Phase 1 (운영 안정화)**: 코어 10/10 완료. 잔여 코드 완성(Browser Guard ✅, Channel Reliability Kit ✅, 세션 바인딩 ✅). 미구현 잔여: Delta Card UI, Approve&Run 카드, 3.24 업그레이드, Windows 전략 결정(Electron 35 직접빌드로 사실상 확정).
 
 **Phase 2 (생태계 확장 — 원칙 P-13)**:
-- ✅ 2-1: KR 스킬팩 확장 (11개 완료 + k-skill submodule 통합)
+- ✅ 2-1: KR 스킬팩 확장 (네이버 검색 포함 총 12개 KR 스킬 완료 + k-skill submodule 통합)
 - 🚀 **커뮤니티 배포 스프린트 (Day 0+5일)**: ngrok 고정 도메인 → Windows/macOS 빌드 → 원클릭 설치 → 온보딩 → 자료 제작 → GPters 포스트
 - 2-2: **활성 사용자 100+** ← 생태계 지표 우선
 - 2-3: 커뮤니티 기여자 5+

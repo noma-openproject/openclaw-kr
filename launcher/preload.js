@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('openclawKR', {
     isDone: () => ipcRenderer.invoke('onboarding:isDone'),
     complete: () => ipcRenderer.invoke('onboarding:complete'),
   },
+  // 카카오 상태 (Day 5: 자동시작)
+  kakao: {
+    getStatus: () => ipcRenderer.invoke('openclaw:kakao:status'),
+  },
   // 채널 바인딩 (Phase 1: 세션 바인딩)
   channel: {
     bind: (/** @type {string} */ platform, /** @type {string} */ userId, /** @type {string} */ sessionId, /** @type {string} */ threadId) =>
