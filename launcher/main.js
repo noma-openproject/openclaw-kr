@@ -180,11 +180,14 @@ async function startKakaoStack() {
   resolvedNgrokUrl = await getNgrokTunnelUrl();
   console.log(`[pairing] ngrok URL: ${resolvedNgrokUrl}`);
 
-  // 기존 바인딩이 있으면 Relay heartbeat 시작
+  // 바인딩 확인 → 있으면 heartbeat, 없으면 자동 페어링 트리거
   const binding = channelRegistry.listBindings().find((b) => b.platform === 'kakao');
   if (binding) {
-    console.log(`[pairing] 기존 바인딩 발견: kakao:${binding.userId.slice(0, 6)}...`);
+    console.log(`[kakao] 기존 페어링 활성: kakao:${binding.userId.slice(0, 6)}...`);
     startHeartbeatLoop();
+  } else {
+    console.log('[kakao] 카카오 바인딩 없음 — 자동 페어링 시작');
+    await generatePairingCode();
   }
 }
 
@@ -231,11 +234,12 @@ function getNgrokTunnelUrl() {
 }
 
 /**
- * Relay 서버 설정 읽기 (url + secret) — ~/.openclaw/openclaw.json > env > 기본값
+ * Relay 서버 설정 읽기 (url + secret) — ~/.openclaw/noma-config.json > env > 기본값
+ * (openclaw.json에 넣으면 gateway가 unknown key로 거부하므로 별도 파일)
  * @returns {{url: string, secret: string}}
  */
 function readRelayConfig() {
-  const configPath = path.join(os.homedir(), '.openclaw', 'openclaw.json');
+  const configPath = path.join(os.homedir(), '.openclaw', 'noma-config.json');
   let relayUrl = '';
   let relaySecret = '';
   try {
@@ -337,9 +341,9 @@ async function generatePairingCode() {
   // dialog로 코드 표시
   dialog.showMessageBox({
     type: 'info',
-    title: '카카오 페어링 코드',
-    message: `카카오 페어링 코드: ${code}`,
-    detail: `카카오톡에서 @noma-kr 채널에 '/pair ${code}'를 입력하세요.\n5분 후 만료됩니다.`,
+    title: '카카오 페어링',
+    message: '카카오 페어링이 필요합니다.',
+    detail: `페어링 코드: ${code}\n\n카카오톡에서 @noma-kr 채널에\n'/pair ${code}'을 입력하세요.\n\n5분 후 만료됩니다.`,
     buttons: ['확인'],
   });
 
