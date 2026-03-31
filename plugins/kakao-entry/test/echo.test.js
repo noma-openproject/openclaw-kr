@@ -145,6 +145,7 @@ function startSkillServer() {
     process.env.KAKAO_SKILL_PORT = String(SKILL_PORT);
     process.env.OPENCLAW_GATEWAY_PORT = String(MOCK_GW_PORT);
     process.env.OPENCLAW_GATEWAY_HOST = '127.0.0.1';
+    process.env.NOMA_PAIRING_MODE = 'demo'; // 테스트에서는 페어링 게이트 스킵
 
     // require 캐시 제거 후 로드
     const modPath = require.resolve('../index');

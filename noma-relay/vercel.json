@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/api/kakao", "dest": "/api/kakao.js" },
+    { "src": "/api/register", "dest": "/api/register.js" },
+    { "src": "/api/heartbeat", "dest": "/api/heartbeat.js" }
+  ]
+}

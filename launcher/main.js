@@ -1,10 +1,13 @@
 // openclaw-kr Electron thin launcher
 // OpenClaw dashboard(localhost:18789)를 데스크톱 앱으로 감싸는 launcher
 // Phase 1-B: BrowserView dual 구조 (dashboard + receipt panel)
-const { app, BrowserWindow, BrowserView, ipcMain, net } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, net, dialog, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const crypto = require('crypto');
+const http = require('http');
+const https = require('https');
 const { spawn, execSync } = require('child_process');
 const { SessionWatcher } = require('./session-watcher');
 const { loadTeamConfig, saveTeamConfig } = require('./team-orchestrator');
@@ -22,6 +25,15 @@ const DASHBOARD_URL = `http://localhost:${DASHBOARD_PORT}`;
 const RECEIPT_PANEL_WIDTH = 320;
 const KAKAO_PORT = 3001;
 const NGROK_DOMAIN = 'nonexhortative-gwenn-unbreaded.ngrok-free.dev';
+
+// --- 페어링 설정 ---
+const PAIRING_TTL_MS = 300_000; // 5분
+const PAIRING_PENDING_PATH = path.join(os.homedir(), '.openclaw', 'pairing-pending.json');
+const NOMA_PAIRING_MODE = process.env.NOMA_PAIRING_MODE || 'personal';
+/** @type {NodeJS.Timeout|null} */
+let heartbeatInterval = null;
+/** @type {string} */
+let resolvedNgrokUrl = '';
 
 // --- 카카오 자동시작 상태 ---
 /** @type {import('child_process').ChildProcess|null} */
@@ -60,14 +72,30 @@ function startKakaoServer() {
 
   try {
     kakaoProcess = spawn(process.execPath, [entryPath], {
-      env: { ...process.env, KAKAO_SKILL_PORT: String(KAKAO_PORT), ELECTRON_RUN_AS_NODE: '1' },
+      env: {
+        ...process.env,
+        KAKAO_SKILL_PORT: String(KAKAO_PORT),
+        ELECTRON_RUN_AS_NODE: '1',
+        NOMA_PAIRING_MODE,
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: false,
     });
 
     kakaoProcess.stdout?.on('data', (d) => {
       const msg = d.toString().trim();
-      if (msg) console.log(`[kakao] ${msg}`);
+      if (msg) {
+        console.log(`[kakao] ${msg}`);
+        // 페어링 성공 감지 → 데스크톱 알림
+        if (msg.includes('[pairing] bound kakao:')) {
+          try {
+            new Notification({
+              title: '페어링 완료!',
+              body: '카카오 메시지가 이 컴퓨터로 전달됩니다.',
+            }).show();
+          } catch { /* Notification not supported */ }
+        }
+      }
     });
     kakaoProcess.stderr?.on('data', (d) => {
       const msg = d.toString().trim();
@@ -128,10 +156,10 @@ function startNgrokTunnel() {
 }
 
 /**
- * 카카오 스킬 서버 + ngrok 자동시작
+ * 카카오 스킬 서버 + ngrok 자동시작 + Relay heartbeat
  * gateway가 성공한 후에 호출. 실패해도 앱은 정상 동작.
  */
-function startKakaoStack() {
+async function startKakaoStack() {
   kakaoStatus = 'starting';
 
   const serverOk = startKakaoServer();
@@ -144,6 +172,19 @@ function startKakaoStack() {
   kakaoStatus = tunnelOk ? 'running' : 'error';
   if (!tunnelOk) {
     console.warn('[kakao] 터널 없이 스킬 서버만 동작 (로컬 전용)');
+    return;
+  }
+
+  // ngrok URL 자동감지 (터널 시작 후 잠시 대기)
+  await new Promise((r) => setTimeout(r, 2000));
+  resolvedNgrokUrl = await getNgrokTunnelUrl();
+  console.log(`[pairing] ngrok URL: ${resolvedNgrokUrl}`);
+
+  // 기존 바인딩이 있으면 Relay heartbeat 시작
+  const binding = channelRegistry.listBindings().find((b) => b.platform === 'kakao');
+  if (binding) {
+    console.log(`[pairing] 기존 바인딩 발견: kakao:${binding.userId.slice(0, 6)}...`);
+    startHeartbeatLoop();
   }
 }
 
@@ -151,6 +192,7 @@ function startKakaoStack() {
  * 카카오 프로세스 정리
  */
 function stopKakaoStack() {
+  stopHeartbeatLoop();
   if (ngrokProcess) {
     try { ngrokProcess.kill(); } catch { /* ignore */ }
     ngrokProcess = null;
@@ -161,6 +203,213 @@ function stopKakaoStack() {
   }
   kakaoStatus = 'off';
   console.log('[kakao] 프로세스 정리 완료');
+}
+
+// --- 페어링: ngrok URL 자동감지 ---
+/**
+ * ngrok local API에서 터널 URL 조회
+ * @returns {Promise<string>} public URL (e.g. https://xxx.ngrok-free.dev)
+ */
+function getNgrokTunnelUrl() {
+  return new Promise((resolve) => {
+    const req = http.get('http://127.0.0.1:4040/api/tunnels', { timeout: 3000 }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const tunnels = JSON.parse(data).tunnels || [];
+          const tunnel = tunnels.find((/** @type {any} */ t) => t.proto === 'https') || tunnels[0];
+          resolve(tunnel ? tunnel.public_url : `https://${NGROK_DOMAIN}`);
+        } catch {
+          resolve(`https://${NGROK_DOMAIN}`);
+        }
+      });
+    });
+    req.on('error', () => resolve(`https://${NGROK_DOMAIN}`));
+    req.on('timeout', () => { req.destroy(); resolve(`https://${NGROK_DOMAIN}`); });
+  });
+}
+
+/**
+ * Relay 서버 설정 읽기 (url + secret) — ~/.openclaw/openclaw.json > env > 기본값
+ * @returns {{url: string, secret: string}}
+ */
+function readRelayConfig() {
+  const configPath = path.join(os.homedir(), '.openclaw', 'openclaw.json');
+  let relayUrl = '';
+  let relaySecret = '';
+  try {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    relayUrl = config?.relay?.url || '';
+    relaySecret = config?.relay?.secret || '';
+  } catch { /* ignore */ }
+  return {
+    url: relayUrl || process.env.NOMA_RELAY_URL || 'https://noma-relay.vercel.app',
+    secret: relaySecret || process.env.NOMA_RELAY_SECRET || '',
+  };
+}
+
+/**
+ * Relay에 HTTP POST 전송
+ * @param {string} apiPath - e.g. '/api/register'
+ * @param {object} body
+ * @returns {Promise<{ok: boolean, data?: any, error?: string}>}
+ */
+function relayPost(apiPath, body) {
+  return new Promise((resolve) => {
+    try {
+      const relayConfig = readRelayConfig();
+      const url = new URL(apiPath, relayConfig.url);
+      const payload = JSON.stringify(body);
+      const mod = url.protocol === 'https:' ? https : http;
+      const secret = relayConfig.secret;
+
+      /** @type {Record<string, string>} */
+      const headers = {
+        'Content-Type': 'application/json',
+        'Content-Length': String(Buffer.byteLength(payload)),
+      };
+      if (secret) headers['Authorization'] = `Bearer ${secret}`;
+
+      const req = mod.request(
+        {
+          hostname: url.hostname,
+          port: url.port || (url.protocol === 'https:' ? 443 : 80),
+          path: url.pathname,
+          method: 'POST',
+          headers,
+          timeout: 10_000,
+        },
+        (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            try {
+              resolve({ ok: res.statusCode === 200, data: JSON.parse(data) });
+            } catch {
+              resolve({ ok: false, error: 'Invalid response' });
+            }
+          });
+        },
+      );
+      req.on('error', (/** @type {any} */ e) => resolve({ ok: false, error: e.message }));
+      req.on('timeout', () => { req.destroy(); resolve({ ok: false, error: 'Timeout' }); });
+      req.write(payload);
+      req.end();
+    } catch (/** @type {any} */ e) {
+      resolve({ ok: false, error: e.message });
+    }
+  });
+}
+
+/**
+ * 6자리 페어링 코드 생성 + Relay 등록 + dialog 표시
+ * @returns {Promise<{code: string, expiresAt: number}|{error: string}>}
+ */
+async function generatePairingCode() {
+  const code = String(crypto.randomInt(100000, 999999));
+  const expiresAt = Date.now() + PAIRING_TTL_MS;
+
+  // pending 파일 기록
+  const dir = path.dirname(PAIRING_PENDING_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(PAIRING_PENDING_PATH, JSON.stringify({ code, expiresAt }), 'utf8');
+  console.log(`[pairing] 코드 생성: ***${code.slice(-3)}`);
+
+  // ngrok URL 확인
+  if (!resolvedNgrokUrl) {
+    resolvedNgrokUrl = await getNgrokTunnelUrl();
+  }
+
+  // Relay에 등록
+  const result = await relayPost('/api/register', { code, endpoint: resolvedNgrokUrl });
+  if (!result.ok) {
+    console.error(`[pairing] Relay 등록 실패: ${result.error}`);
+    dialog.showMessageBox({
+      type: 'warning',
+      title: 'Relay 연결 실패',
+      message: 'Relay 서버에 연결할 수 없습니다.\n인터넷 연결을 확인하세요.',
+      buttons: ['확인'],
+    });
+    return { error: result.error || 'Relay registration failed' };
+  }
+
+  // dialog로 코드 표시
+  dialog.showMessageBox({
+    type: 'info',
+    title: '카카오 페어링 코드',
+    message: `카카오 페어링 코드: ${code}`,
+    detail: `카카오톡에서 @noma-kr 채널에 '/pair ${code}'를 입력하세요.\n5분 후 만료됩니다.`,
+    buttons: ['확인'],
+  });
+
+  return { code, expiresAt };
+}
+
+/**
+ * 페어링 상태 조회
+ * @returns {{paired: boolean, userId?: string, mode: string, codeActive: boolean, expiresAt?: number}}
+ */
+function getPairingStatus() {
+  const binding = channelRegistry.listBindings().find((b) => b.platform === 'kakao');
+  let codeActive = false;
+  let expiresAt;
+
+  try {
+    const pending = JSON.parse(fs.readFileSync(PAIRING_PENDING_PATH, 'utf8'));
+    if (pending.expiresAt > Date.now()) {
+      codeActive = true;
+      expiresAt = pending.expiresAt;
+    }
+  } catch { /* no pending */ }
+
+  return {
+    paired: !!binding,
+    userId: binding?.userId,
+    mode: NOMA_PAIRING_MODE,
+    codeActive,
+    expiresAt,
+  };
+}
+
+/**
+ * Relay heartbeat 전송 (endpoint 업데이트 포함)
+ */
+async function sendRelayHeartbeat() {
+  const binding = channelRegistry.listBindings().find((b) => b.platform === 'kakao');
+  if (!binding) return;
+
+  if (!resolvedNgrokUrl) {
+    resolvedNgrokUrl = await getNgrokTunnelUrl();
+  }
+
+  const result = await relayPost('/api/heartbeat', {
+    userId: binding.userId,
+    endpoint: resolvedNgrokUrl,
+  });
+
+  if (result.ok) {
+    console.log('[pairing] heartbeat sent');
+  } else {
+    console.warn(`[pairing] heartbeat failed: ${result.error}`);
+  }
+}
+
+/**
+ * 자동 재등록: 앱 시작 시 기존 바인딩이 있으면 Relay에 heartbeat + 주기 반복
+ */
+async function startHeartbeatLoop() {
+  // 즉시 1회
+  await sendRelayHeartbeat();
+  // 5분마다 반복
+  heartbeatInterval = setInterval(sendRelayHeartbeat, 300_000);
+}
+
+function stopHeartbeatLoop() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
 }
 
 // --- Browser Guard: URL 필터링 ---
@@ -297,6 +546,26 @@ ipcMain.handle('openclaw:channel:list', () => {
 
 ipcMain.handle('openclaw:channel:unbind', (_event, platform, userId) => {
   return channelRegistry.unbind(platform, userId);
+});
+
+// --- IPC: 페어링 ---
+ipcMain.handle('openclaw:pairing:generate', async () => {
+  return generatePairingCode();
+});
+
+ipcMain.handle('openclaw:pairing:status', () => {
+  return getPairingStatus();
+});
+
+ipcMain.handle('openclaw:pairing:unpair', async () => {
+  const binding = channelRegistry.listBindings().find((b) => b.platform === 'kakao');
+  if (binding) {
+    channelRegistry.unbind('kakao', binding.userId);
+    // Relay에도 해제 알림 (best effort)
+    await relayPost('/api/heartbeat', { userId: binding.userId, endpoint: '' });
+    console.log(`[pairing] unpaired kakao:${binding.userId.slice(0, 6)}...`);
+  }
+  return true;
 });
 
 // --- 영수증 패널 BrowserView ---
@@ -520,7 +789,7 @@ app.whenReady().then(async () => {
 
   // 3. 카카오 스킬 서버 + ngrok 자동시작 (gateway 성공 후, 실패해도 앱은 동작)
   if (gatewayOk) {
-    startKakaoStack();
+    await startKakaoStack();
   } else {
     console.warn('[launcher] Gateway 미시작 → 카카오 스킵');
   }

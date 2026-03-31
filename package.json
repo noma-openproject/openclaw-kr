@@ -1,6 +1,6 @@
 {
   "name": "openclaw-kr",
-  "version": "0.1.0-alpha.7",
+  "version": "0.1.0-alpha.8",
   "description": "한국형 AI 에이전트 운영 셸 — OpenClaw downstream 배포판",
   "main": "launcher/main.js",
   "scripts": {
@@ -27,8 +27,11 @@
     "test:daiso": "node packages/verified-kr-skills/daiso-search/test/daiso-search.test.js",
     "test:gateway": "node test/gateway-starter.test.js",
     "test:onboarding": "node test/onboarding.test.js",
+    "test:pairing": "node test/pairing.test.js",
+    "test:relay-routing": "node noma-relay/test/routing.test.js",
+    "test:relay-api": "node noma-relay/test/kakao-api.test.js",
     "test:skills": "npm run test:utils && npm run test:hwp && npm run test:metro && npm run test:postal && npm run test:srt && npm run test:lotto && npm run test:kbo && npm run test:dust && npm run test:delivery && npm run test:blueribbon && npm run test:daiso",
-    "test": "npm run test:kakao && npm run test:gateway && npm run test:onboarding && npm run test:skills",
+    "test": "npm run test:kakao && npm run test:gateway && npm run test:onboarding && npm run test:relay-routing && npm run test:relay-api && npm run test:pairing && npm run test:skills",
     "scan:hwp": "node scripts/scan-skill.js packages/verified-kr-skills/hwp-convert",
     "scan:metro": "node scripts/scan-skill.js packages/verified-kr-skills/seoul-metro",
     "scan:postal": "node scripts/scan-skill.js packages/verified-kr-skills/postal-code",

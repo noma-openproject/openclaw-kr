@@ -11,9 +11,14 @@ const {
   checkGatewayHealth,
 } = require('./relay');
 const { ChannelReliability } = require('./dedup');
+const { ChannelRegistry } = require(path.resolve(__dirname, '../../launcher/channel-registry'));
 
 // --- Channel Reliability ---
 const channelKit = new ChannelReliability({ dedupWindowMs: 2000, delayThresholdMs: 10000 });
+
+// --- 페어링 ---
+const NOMA_PAIRING_MODE = process.env.NOMA_PAIRING_MODE || 'personal';
+const channelRegistry = new ChannelRegistry();
 
 // --- 설정 ---
 const PORT = parseInt(process.env.KAKAO_SKILL_PORT || '3001', 10);
@@ -223,6 +228,34 @@ const server = http.createServer(async (req, res) => {
 
   try {
     const body = await parseBody(req);
+
+    // --- 페어링 게이트 (Relay forward 검증) ---
+    const nomaUserId = req.headers['x-noma-userid'];
+    if (NOMA_PAIRING_MODE === 'personal' && nomaUserId) {
+      // X-Noma-UserId가 있으면 Relay를 통해 온 요청
+      const existing = channelRegistry.lookup('kakao', nomaUserId);
+      if (!existing) {
+        // 첫 요청: 자동 local bind (Relay가 이미 인증했으므로 신뢰)
+        channelRegistry.bind('kakao', nomaUserId, 'paired');
+        console.log(`[pairing] bound kakao:${nomaUserId.slice(0, 8)}...`);
+      }
+    } else if (NOMA_PAIRING_MODE === 'personal' && !nomaUserId) {
+      // Relay 없이 직접 접근 (로컬 테스트 제외) — userId 기반으로 바인딩 확인
+      const userId = body?.userRequest?.user?.id;
+      if (userId) {
+        const existing = channelRegistry.lookup('kakao', userId);
+        if (!existing) {
+          res.writeHead(200);
+          res.end(JSON.stringify(formatResponse(
+            '이 노마 인스턴스에 연결되지 않은 계정입니다.\n' +
+            '데스크톱 앱에서 페어링 코드를 생성한 후 \'/pair 코드6자리\'를 입력해주세요.',
+          )));
+          return;
+        }
+      }
+    }
+    // demo 모드: 게이트 스킵
+
     const result = await handleSkillRequest(body);
     res.writeHead(result.status);
     res.end(JSON.stringify(result.body));
@@ -264,4 +297,5 @@ module.exports = {
   formatResponse,
   checkRateLimit,
   server,
+  channelRegistry,
 };

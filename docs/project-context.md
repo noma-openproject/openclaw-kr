@@ -29,6 +29,7 @@
 | 층 | 역할 | 구현 위치 |
 |---|---|---|
 | 데스크톱 앱 | 주 통제면 (Electron thin launcher) | `launcher/` |
+| Noma Relay | 카카오→로컬 라우팅 프록시 (Vercel) | `noma-relay/` |
 | 카카오 원격면 | 리모컨 (모바일 접근) + Safe Mode | `plugins/kakao-entry/` |
 | KR 스킬팩 | 한국 서비스 연동 (API-first, Browser-last) | `packages/verified-kr-skills/` |
 | Trust 기본값 | 보안 프로필 + Safe Mode | `packages/permission-profiles/` |
@@ -116,7 +117,16 @@ Token Saver(memorySearch OFF), 실행 영수증(/status), Kakao Safe Mode(write/
 - **추가 원인**: asarUnpack이 openclaw만 포함 → 의존성(tslog 등) 누락 → `node_modules/**` 전체 unpack
 - **추가**: requestSingleInstanceLock (Windows 두 번째 실행 수정) + gateway.log 파일 기록
 - **카카오 자동시작**: main.js에서 gateway 성공 후 카카오 스킬 서버(port 3001) + ngrok 터널 자동 spawn. ngrok 미설치 시 graceful 비활성화.
-- 현재 릴리즈: **v0.1.0-alpha.6** — Windows QA 통과 ✅ (대시보드 정상 로드)
+- **v0.1.0-alpha.7**: 카카오 자동시작 포함 + 버전 통일. CI 완료, GitHub Release 게시 완료.
+- 현재 릴리즈: **v0.1.0-alpha.7** — Windows QA 통과 ✅ (대시보드 정상 로드) + 카카오 자동시작 포함
+
+**Noma Relay + 카카오 개인 페어링** (2026-03-31):
+- Noma Relay 배포: `https://noma-relay.vercel.app` (Vercel serverless + Upstash Redis KV)
+- 카카오 스킬 URL: Relay 경유 (`/api/kakao`) — 직접 ngrok가 아님
+- 페어링 흐름: 앱에서 코드 생성 → Relay에 등록 → 카카오 `/pair CODE` → Relay 바인딩 → 이후 메시지 forward → 로컬 Noma 처리
+- ngrok URL 자동감지: `127.0.0.1:4040/api/tunnels` 조회 → heartbeat로 Relay 자동 업데이트
+- 로컬 설정: `~/.openclaw/openclaw.json` → `relay.url` + `relay.secret`
+- 테스트: 172/172 통과 (기존 153 + Relay 15 + 페어링 4)
 
 **Phase 1 보충** (2026-03-29, 지식문서 v3.2.4 P0 항목):
 - ✅ P01: Provider Doctor 2.0 (`scripts/provider-doctor.js`) — provider/env/model/Docker/embeddings 한 번에 검사

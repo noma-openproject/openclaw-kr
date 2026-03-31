@@ -279,6 +279,7 @@
 | v0.1.0-alpha.4 | Electron 35 (Node 22.16) | gateway 실패 (tslog 누락) |
 | v0.1.0-alpha.5 | requestSingleInstanceLock + gateway.log | 파일명 미반영(.4) |
 | v0.1.0-alpha.6 | asarUnpack node_modules/** 전체 | **✅ Windows QA 통과** |
+| v0.1.0-alpha.7 | 카카오 자동시작 + 버전 통일 | **✅ CI 완료, Release 게시** |
 
 **카카오 자동시작 구현 (Day 5):**
 - [x] main.js에서 카카오 스킬 서버 자동 spawn (gateway 성공 후)
@@ -288,9 +289,56 @@
 - [x] preload.js: kakao.getStatus() 브릿지
 - [x] RELEASE_NOTES.md 카카오 자동시작 반영
 
+**GitHub Release:**
+- [x] v0.1.0-alpha.7 Release 게시 완료 (macOS arm64/Intel DMG + Windows exe)
+- [x] 타이틀: "Noma v0.1.0-alpha.7 — 한국형 AI 실행 셸 알파"
+
 **남은 작업:**
 - [ ] GIF 녹화 2개 (설치/데모)
-- [ ] GPters 게시 + Release 확정
+- [ ] GPters 게시
+- [ ] 카카오 자동시작 실 기기 검증 (ngrok 설치 맥에서)
+
+---
+
+## Noma Relay + 카카오 개인 페어링 — done
+
+**목표**: 카카오 메시지를 각 사용자 PC로 라우팅하는 Relay 프록시 + 페어링 시스템 구현
+**승인일**: 2026-03-31
+
+### 아키텍처
+카카오 → Noma Relay (Vercel + Upstash Redis) → userId로 라우팅 → 사용자 PC ngrok → 로컬 Noma 스킬 서버 → OpenClaw gateway
+
+### 실행 결과
+
+**M0: Noma Relay (클라우드 프록시)**
+1. [x] `noma-relay/` 디렉터리 생성 — api/kakao.js, api/register.js, api/heartbeat.js, lib/routing.js
+2. [x] Vercel 배포: `https://noma-relay.vercel.app`
+3. [x] Upstash Redis KV 연결: `upstash-kv-lime-kite`
+4. [x] 보안: NOMA_RELAY_SECRET 인증, /pair 브루트포스 방어(3회→60초), X-Noma-UserId 헤더
+5. [x] 카카오 스킬 URL 변경: Relay 경유 (`/api/kakao`)
+
+**M1: 로컬 페어링**
+6. [x] main.js — 페어링 코드 생성(crypto.randomInt), ngrok URL 자동감지(127.0.0.1:4040), Relay 등록, dialog.showMessageBox, Notification, IPC 3개, heartbeat 5분 주기
+7. [x] main.js — relay.url/secret을 ~/.openclaw/openclaw.json에서 읽기 (하드코딩 제거)
+8. [x] index.js — X-Noma-UserId 검증, 자동 local bind, personal/demo 모드 게이트
+9. [x] preload.js — pairing IPC 브릿지 (generate/getStatus/unpair)
+
+**테스트**
+10. [x] Relay routing 테스트 9개 (setPending/getPending/TTL/bind/unbind/heartbeat)
+11. [x] Relay API 테스트 6개 (/pair 성공/실패/거부/unpair/status)
+12. [x] 로컬 페어링 테스트 4개 (코드 생성/TTL/게이트/자동 bind)
+13. [x] 기존 echo.test.js에 NOMA_PAIRING_MODE=demo 추가 (기존 18개 정상 통과)
+
+### 품질 게이트
+- lint: 0 errors (13 pre-existing warnings)
+- typecheck: clean
+- 테스트: 172/172 (기존 153 + Relay 15 + 페어링 4)
+
+### Smoke test (Relay 프로덕션)
+- [x] 바인딩 없는 사용자 → "페어링이 필요합니다" 응답
+- [x] /api/register → 코드 등록 성공
+- [x] /pair CODE → "페어링 완료! 🎉" + KV 바인딩 생성
+- [x] /status → "페어링 상태: 연결됨 / 데스크톱: 오프라인"
 
 ---
 

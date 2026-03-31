@@ -1,0 +1,12 @@
+{
+  "name": "noma-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Noma Relay — Kakao ↔ local Noma routing proxy (Vercel serverless)",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.34.0"
+  }
+}

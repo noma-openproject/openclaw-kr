@@ -3,7 +3,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('openclawKR', {
-  version: '0.1.0-alpha.7',
+  version: '0.1.0-alpha.8',
   // gateway 상태 확인 (main process에서 health check 수행)
   getStatus: () => ipcRenderer.invoke('openclaw:status'),
   // 실행 영수증 + 비용 가시성 (Phase 1-B)
@@ -42,6 +42,12 @@ contextBridge.exposeInMainWorld('openclawKR', {
   // 카카오 상태 (Day 5: 자동시작)
   kakao: {
     getStatus: () => ipcRenderer.invoke('openclaw:kakao:status'),
+  },
+  // 페어링 (카카오 1:1 바인딩)
+  pairing: {
+    generate: () => ipcRenderer.invoke('openclaw:pairing:generate'),
+    getStatus: () => ipcRenderer.invoke('openclaw:pairing:status'),
+    unpair: () => ipcRenderer.invoke('openclaw:pairing:unpair'),
   },
   // 채널 바인딩 (Phase 1: 세션 바인딩)
   channel: {

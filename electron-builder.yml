@@ -12,6 +12,8 @@ files:
   - "!launcher/ui/node_modules/**"
   - "!launcher/ui/tsconfig*.json"
   - "!launcher/ui/vite.config.ts"
+  - plugins/**/*
+  - "!plugins/**/test/**"
   - package.json
   - node_modules/**/*
 
