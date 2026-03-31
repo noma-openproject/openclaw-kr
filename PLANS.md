@@ -332,7 +332,7 @@
 ### 품질 게이트
 - lint: 0 errors (13 pre-existing warnings)
 - typecheck: clean
-- 테스트: 172/172 (기존 153 + Relay 15 + 페어링 4)
+- 테스트: 190/190 (카카오 18 + dedup 10 + browser-guard 10 + channel-registry 8 + gateway 10 + onboarding 8 + relay 15 + pairing 4 + skills 107)
 
 ### Smoke test (Relay 프로덕션)
 - [x] 바인딩 없는 사용자 → "페어링이 필요합니다" 응답

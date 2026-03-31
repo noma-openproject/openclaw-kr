@@ -126,7 +126,7 @@ Token Saver(memorySearch OFF), 실행 영수증(/status), Kakao Safe Mode(write/
 - 페어링 흐름: 앱에서 코드 생성 → Relay에 등록 → 카카오 `/pair CODE` → Relay 바인딩 → 이후 메시지 forward → 로컬 Noma 처리
 - ngrok URL 자동감지: `127.0.0.1:4040/api/tunnels` 조회 → heartbeat로 Relay 자동 업데이트
 - 로컬 설정: `~/.openclaw/openclaw.json` → `relay.url` + `relay.secret`
-- 테스트: 172/172 통과 (기존 153 + Relay 15 + 페어링 4)
+- 테스트: 190/190 통과 (카카오 18 + dedup 10 + browser-guard 10 + channel-registry 8 + gateway 10 + onboarding 8 + relay-routing 9 + relay-api 6 + pairing 4 + skills 107)
 
 **Phase 1 보충** (2026-03-29, 지식문서 v3.2.4 P0 항목):
 - ✅ P01: Provider Doctor 2.0 (`scripts/provider-doctor.js`) — provider/env/model/Docker/embeddings 한 번에 검사
@@ -137,7 +137,7 @@ Token Saver(memorySearch OFF), 실행 영수증(/status), Kakao Safe Mode(write/
 - ✅ Browser Guard: `isAllowedUrl()` + `will-navigate` + `setWindowOpenHandler` + app-level 보안. chrome:/data:/javascript: 차단, localhost:18789만 허용. 10 tests.
 - ✅ Channel Reliability Kit (1-11): `dedup.js` — isDuplicate(윈도우 내 중복 감지) + 채널 상태 머신(connected/processing/delayed/error) + index.js 통합. 10 tests.
 - ✅ 세션 바인딩 (1-8): `channel-registry.js` — 채널→세션 매핑(bind/lookup/unbind/list) + 파일 persistence + IPC 핸들러 4개 + preload 브릿지 + receipt.ts ChannelInfo 타입. 8 tests.
-- 전체: 153/153 테스트 (Browser Guard 10 + Dedup 10 + Registry 8 + 카카오 18 + 스킬 107). lint 0 errors + typecheck clean.
+- 전체: 190/190 테스트 (Browser Guard 10 + Dedup 10 + Registry 8 + Gateway 10 + Onboarding 8 + Relay 15 + Pairing 4 + 카카오 18 + 스킬 107). lint 0 errors + typecheck clean.
 
 **ngrok 고정 터널 전환** (2026-03-29):
 - Cloudflare named tunnel → 도메인 필수 → 사용 불가
