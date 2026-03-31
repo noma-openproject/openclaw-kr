@@ -16,7 +16,7 @@ const {
 } = require('../../launcher/gateway-client');
 
 // --- relay 전용 설정 ---
-const RELAY_TIMEOUT_MS = parseInt(process.env.RELAY_TIMEOUT_MS || '2000', 10);
+const RELAY_TIMEOUT_MS = parseInt(process.env.RELAY_TIMEOUT_MS || '4500', 10);
 const CALLBACK_TIMEOUT_MS = parseInt(process.env.CALLBACK_TIMEOUT_MS || '55000', 10);
 const RETRY_MAX = parseInt(process.env.RELAY_RETRY_MAX || '3', 10);
 const RETRY_BACKOFF_MS = parseInt(process.env.RELAY_RETRY_BACKOFF_MS || '1000', 10);
