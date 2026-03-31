@@ -128,7 +128,11 @@ function parseBody(req) {
 }
 
 // --- 메인 핸들러 ---
-async function handleSkillRequest(body) {
+/**
+ * @param {object} body - 카카오 스킬 요청 body
+ * @param {boolean} [useCallbackRelay=false] - Relay callback 컨텍스트 (55초 타임아웃)
+ */
+async function handleSkillRequest(body, useCallbackRelay) {
   // 1. 검증
   const validation = validateRequest(body);
   if (!validation.valid) {
@@ -166,7 +170,7 @@ async function handleSkillRequest(body) {
   channelKit.recordRequest(channelId, requestId);
 
   console.log(
-    `[kakao] user=${userId.slice(0, 8)}... msg="${utterance.slice(0, 30)}" callback=${!!callbackUrl}`,
+    `[kakao] user=${userId.slice(0, 8)}... msg="${utterance.slice(0, 30)}" callback=${!!callbackUrl} relayCallback=${!!useCallbackRelay}`,
   );
 
   if (callbackUrl) {
@@ -186,8 +190,10 @@ async function handleSkillRequest(body) {
     return { status: 200, body: { version: '2.0', useCallback: true } };
   }
 
-  // 5. 동기 모드 (콜백 미지원 블록 — fallback, Team 모드 자동 감지)
-  const result = await relayWithTeam(utterance, userId);
+  // 5. 동기 모드 — Relay callback 컨텍스트면 55초 타임아웃
+  const result = useCallbackRelay
+    ? await relayWithTeamForCallback(utterance, userId)
+    : await relayWithTeam(utterance, userId);
   channelKit.recordResponse(channelId, requestId, result.ok);
 
   if (!result.ok) {
@@ -256,7 +262,9 @@ const server = http.createServer(async (req, res) => {
     }
     // demo 모드: 게이트 스킵
 
-    const result = await handleSkillRequest(body);
+    // Relay에서 X-Noma-Callback 헤더가 오면 callback 타임아웃(55초) 사용
+    const isRelayCallback = req.headers['x-noma-callback'] === '1';
+    const result = await handleSkillRequest(body, isRelayCallback);
     res.writeHead(result.status);
     res.end(JSON.stringify(result.body));
   } catch (err) {

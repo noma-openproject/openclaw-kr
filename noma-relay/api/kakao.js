@@ -84,13 +84,19 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // callback 모드 지원
+  // callbackUrl을 body에서 분리 — local에는 전달하지 않음
+  // (local이 callback 모드로 동작하면 useCallback:true만 반환하므로)
   const callbackUrl = body?.userRequest?.callbackUrl;
+  const forwardBody = callbackUrl
+    ? { ...body, userRequest: { ...body.userRequest, callbackUrl: undefined } }
+    : body;
+
   if (callbackUrl) {
-    // 즉시 useCallback 응답 후 비동기 forward
+    // 카카오에 즉시 useCallback 응답
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ version: '2.0', useCallback: true }));
-    forwardToLocal(endpoint, body, userId).then((result) => {
+    // 백그라운드에서 local forward (callback 컨텍스트 → 55초 타임아웃)
+    forwardToLocal(endpoint, forwardBody, userId, true).then((result) => {
       sendCallback(callbackUrl, result);
     }).catch(() => {
       sendCallback(callbackUrl, kakaoResponse('처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
@@ -98,9 +104,9 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // sync 모드
+  // sync 모드 (callbackUrl 없음 — 5초 안에 응답해야 함)
   try {
-    const result = await forwardToLocal(endpoint, body, userId);
+    const result = await forwardToLocal(endpoint, forwardBody, userId, false);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(result));
   } catch {
@@ -165,13 +171,22 @@ async function handleStatus(userId) {
  * @param {string} endpoint
  * @param {object} body
  * @param {string} userId
+ * @param {boolean} [isCallback=false] - callback 컨텍스트 (55초 타임아웃 + 확장 요청)
  * @returns {Promise<object>}
  */
-function forwardToLocal(endpoint, body, userId) {
+function forwardToLocal(endpoint, body, userId, isCallback) {
   return new Promise((resolve, reject) => {
     const url = new URL(endpoint);
     const payload = JSON.stringify(body);
     const mod = url.protocol === 'https:' ? https : http;
+
+    /** @type {Record<string, string>} */
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': String(Buffer.byteLength(payload)),
+      'X-Noma-UserId': userId,
+    };
+    if (isCallback) headers['X-Noma-Callback'] = '1';
 
     const forwardReq = mod.request(
       {
@@ -179,12 +194,8 @@ function forwardToLocal(endpoint, body, userId) {
         port: url.port || (url.protocol === 'https:' ? 443 : 80),
         path: '/',
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-          'X-Noma-UserId': userId,
-        },
-        timeout: 55_000, // callback 모드 최대 시간에 맞춤
+        headers,
+        timeout: isCallback ? 55_000 : 5_000,
       },
       (forwardRes) => {
         let data = '';
