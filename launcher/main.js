@@ -791,11 +791,11 @@ app.whenReady().then(async () => {
     console.warn('[launcher] Gateway 자동시작 실패 — fallback으로 진행');
   }
 
-  // 3. 카카오 스킬 서버 + ngrok 자동시작 (gateway 성공 후, 실패해도 앱은 동작)
+  // 3. 카카오 연동: 공식 플러그인(kakao-talkchannel)이 gateway 내부에서 SSE로 처리.
+  //    커스텀 kakao-entry + ngrok 스택은 더 이상 필요 없음 (Cloud Run relay로 대체).
+  //    이전 코드: await startKakaoStack();
   if (gatewayOk) {
-    await startKakaoStack();
-  } else {
-    console.warn('[launcher] Gateway 미시작 → 카카오 스킵');
+    console.log('[launcher] 카카오 연동: 공식 플러그인(kakao-talkchannel)이 gateway 내부에서 처리');
   }
 
   // 4. 메인 윈도우 생성

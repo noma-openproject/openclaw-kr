@@ -14,12 +14,15 @@ files:
   - "!launcher/ui/vite.config.ts"
   - plugins/**/*
   - "!plugins/**/test/**"
+  - "!plugins/**/tests/**"
+  - "!plugins/**/node_modules/**"
   - package.json
   - node_modules/**/*
 
 asar: true
 asarUnpack:
   - "node_modules/**"
+  - "plugins/**"
 
 mac:
   category: public.app-category.developer-tools

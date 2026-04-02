@@ -121,12 +121,16 @@ Token Saver(memorySearch OFF), 실행 영수증(/status), Kakao Safe Mode(write/
 - 현재 릴리즈: **v0.1.0-alpha.7** — Windows QA 통과 ✅ (대시보드 정상 로드) + 카카오 자동시작 포함
 
 **Noma Relay + 카카오 개인 페어링** (2026-03-31):
-- Noma Relay 배포: `https://noma-relay.vercel.app` (Vercel serverless + Upstash Redis KV)
-- 카카오 스킬 URL: Relay 경유 (`/api/kakao`) — 직접 ngrok가 아님
-- 페어링 흐름: 앱에서 코드 생성 → Relay에 등록 → 카카오 `/pair CODE` → Relay 바인딩 → 이후 메시지 forward → 로컬 Noma 처리
-- ngrok URL 자동감지: `127.0.0.1:4040/api/tunnels` 조회 → heartbeat로 Relay 자동 업데이트
-- 로컬 설정: `~/.openclaw/openclaw.json` → `relay.url` + `relay.secret`
-- 테스트: 190/190 통과 (카카오 18 + dedup 10 + browser-guard 10 + channel-registry 8 + gateway 10 + onboarding 8 + relay-routing 9 + relay-api 6 + pairing 4 + skills 107)
+- ~~커스텀 Noma Relay 배포: `https://noma-relay.vercel.app` (Vercel serverless + Upstash Redis KV)~~ → **공식 플러그인 전환 중**
+- 테스트: 190/190 통과
+
+**카카오 공식 플러그인 전환** (2026-04-01, 진행 중):
+- 커스텀 Relay(Vercel+ngrok) → 공식 `@openclaw/kakao-talkchannel` 플러그인 v0.5.1
+- **핵심**: SSE(Server-Sent Events) 방식으로 ngrok 의존성 완전 제거
+- 플러그인 설치 + 채널 등록 완료. k.tess.dev(공용 relay) 다운 → 자체 relay 서버 배포 중
+- 자체 relay: Go 서버 + PostgreSQL + Redis, 로컬 실행 성공 (port 8081)
+- **현재 블로커**: 플러그인 SSE → relay 401 인증 에러 (relayToken → sessionToken 변환 디버깅 필요)
+- 해결 후: 클라우드 배포 (Railway/fly.io) + 카카오 스킬 URL 변경 + main.js 커스텀 코드 비활성화
 
 **Phase 1 보충** (2026-03-29, 지식문서 v3.2.4 P0 항목):
 - ✅ P01: Provider Doctor 2.0 (`scripts/provider-doctor.js`) — provider/env/model/Docker/embeddings 한 번에 검사

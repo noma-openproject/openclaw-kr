@@ -48,6 +48,7 @@ module.exports = [
       'packages/k-skill/', // git submodule — 업스트림 코드, 우리가 lint하지 않음
       'packages/verified-kr-skills/blue-ribbon/lib/', // k-skill symlinks
       'packages/verified-kr-skills/daiso-search/lib/', // k-skill symlinks
+      'plugins/kakao-talkchannel/', // 외부 플러그인 번들 — 자체 빌드 도구 사용
     ],
   },
 ];

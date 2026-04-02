@@ -1,6 +1,6 @@
 {
   "name": "openclaw-kr",
-  "version": "0.1.0-alpha.8",
+  "version": "0.1.0-alpha.9",
   "description": "한국형 AI 에이전트 운영 셸 — OpenClaw downstream 배포판",
   "main": "launcher/main.js",
   "scripts": {
@@ -73,6 +73,8 @@
     "url": ""
   },
   "dependencies": {
-    "openclaw": "^2026.3.23-2"
+    "openclaw": "^2026.3.23-2",
+    "zod": "^4.3.6",
+    "zod-to-json-schema": "^3.25.2"
   }
 }

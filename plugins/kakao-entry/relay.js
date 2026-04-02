@@ -30,6 +30,7 @@ const SAFE_MODE_SYSTEM_PROMPT = [
   '응답은 한국어로, 간결하게 작성하세요.',
 ].join('\n');
 
+
 /**
  * 사용자 메시지를 OpenClaw gateway에 중계
  * @param {string} utterance - 카카오에서 온 사용자 입력

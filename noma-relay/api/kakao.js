@@ -42,6 +42,8 @@ module.exports = async function handler(req, res) {
 
   const userId = body?.userRequest?.user?.id;
   const utterance = (body?.userRequest?.utterance || '').trim();
+  const hasCallback = !!body?.userRequest?.callbackUrl;
+  console.log(`[relay] user=${(userId||'?').slice(0,8)} msg="${(utterance||'').slice(0,20)}" callbackUrl=${hasCallback}`);
 
   if (!userId || !utterance) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -84,29 +86,10 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // callbackUrl을 body에서 분리 — local에는 전달하지 않음
-  // (local이 callback 모드로 동작하면 useCallback:true만 반환하므로)
-  const callbackUrl = body?.userRequest?.callbackUrl;
-  const forwardBody = callbackUrl
-    ? { ...body, userRequest: { ...body.userRequest, callbackUrl: undefined } }
-    : body;
-
-  if (callbackUrl) {
-    // 카카오에 즉시 useCallback 응답
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ version: '2.0', useCallback: true }));
-    // 백그라운드에서 local forward (callback 컨텍스트 → 55초 타임아웃)
-    forwardToLocal(endpoint, forwardBody, userId, true).then((result) => {
-      sendCallback(callbackUrl, result);
-    }).catch(() => {
-      sendCallback(callbackUrl, kakaoResponse('처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
-    });
-    return;
-  }
-
-  // sync 모드 (callbackUrl 없음 — 5초 안에 응답해야 함)
+  // callbackUrl을 그대로 로컬에 전달 — 로컬 index.js가 콜백을 직접 처리
+  // (Vercel serverless는 res.end() 후 백그라운드 작업을 보장하지 않으므로)
   try {
-    const result = await forwardToLocal(endpoint, forwardBody, userId, false);
+    const result = await forwardToLocal(endpoint, body, userId, hasCallback);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(result));
   } catch {

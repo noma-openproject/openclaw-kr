@@ -296,7 +296,35 @@
 **남은 작업:**
 - [ ] GIF 녹화 2개 (설치/데모)
 - [ ] GPters 게시
-- [ ] 카카오 자동시작 실 기기 검증 (ngrok 설치 맥에서)
+- [x] 카카오 공식 플러그인 전환 완료 (아래 참조)
+
+### 카카오 공식 플러그인 전환 — done
+
+**배경**: 커스텀 Noma Relay(Vercel+ngrok) → 공식 플러그인(`@openclaw/kakao-talkchannel` v0.5.1) + Cloud Run 자체 relay 배포.
+**완료일**: 2026-04-01
+
+**아키텍처**: 카카오 webhook → Cloud Run relay → SSE → OpenClaw gateway(로컬) → AI → POST /openclaw/reply → relay → callbackUrl → 카카오톡
+
+**완료 항목:**
+- [x] 공식 플러그인 클론 + 빌드
+- [x] SSE 401 해결 (config에서 relayToken 제거 → 자동 session 생성)
+- [x] GCP 프로젝트 `noma-kakao-relay` 생성 (asia-northeast3)
+- [x] Cloud Run + Cloud SQL(db-f1-micro) + Redis Memorystore(1GB) + VPC Connector 배포
+- [x] DB 마이그레이션 9개 완료 (Cloud SQL Proxy 경유)
+- [x] relay 코드 수정: callbackTimeout 5초→30초, MarkDelivered→MarkAcked
+- [x] 카카오 오픈빌더: 스킬 URL → Cloud Run webhook, 폴백 블록+Callback 설정
+- [x] 페어링 + 메시지 round-trip 성공 확인
+
+**인프라:**
+- Cloud Run URL: `https://kakao-talkchannel-relay-660864689462.asia-northeast3.run.app`
+- Webhook: `/kakao-talkchannel/webhook`
+- GCP 프로젝트: `noma-kakao-relay` (billing: 015687-F79E01-099E51)
+- 월 비용: ~$51 (Cloud SQL $9 + Redis $35 + VPC $7)
+
+**알려진 제약 (해결 불가):**
+- 카카오 callbackUrl 유효시간 1분 (카카오 서버 제약)
+- AI 웹검색 질문 30~60초 소요 → 간헐적 callback 만료
+- 단순 대화/상식 질문은 정상 동작 (7~20초)
 
 ---
 

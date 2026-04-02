@@ -74,9 +74,27 @@ function resolveGatewayBin() {
 /**
  * ~/.openclaw/ 디렉토리 + 기본 설정 파일 자동 생성 (첫 실행용)
  */
+/**
+ * 번들된 kakao-talkchannel 플러그인 경로 해결
+ * @returns {string}
+ */
+function resolvePluginPath() {
+  let isPackaged = false;
+  try {
+    const { app } = require('electron');
+    isPackaged = app.isPackaged;
+  } catch { /* Electron 없는 환경 */ }
+
+  if (isPackaged) {
+    return path.join(process.resourcesPath, 'app.asar.unpacked', 'plugins', 'kakao-talkchannel');
+  }
+  return path.join(__dirname, '..', 'plugins', 'kakao-talkchannel');
+}
+
 function ensureConfig() {
   const configDir = path.join(os.homedir(), '.openclaw');
   const configPath = path.join(configDir, 'openclaw.json');
+  const pluginPath = resolvePluginPath();
 
   if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir, { recursive: true });
@@ -89,9 +107,94 @@ function ensureConfig() {
         mode: 'local',
         port: GATEWAY_PORT,
       },
+      channels: {
+        'kakao-talkchannel': {
+          accounts: {
+            default: {
+              enabled: true,
+              dmPolicy: 'pairing',
+              relayUrl: 'https://kakao-talkchannel-relay-660864689462.asia-northeast3.run.app',
+            },
+          },
+        },
+      },
+      plugins: {
+        allow: ['kakao-talkchannel'],
+        load: { paths: [pluginPath] },
+        entries: { 'kakao-talkchannel': { enabled: true } },
+      },
     };
     fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2), 'utf8');
     console.log('[gateway-starter] 기본 설정 파일 생성: ~/.openclaw/openclaw.json');
+  } else {
+    // 기존 config 마이그레이션: 카카오 채널 + 플러그인 경로
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      let changed = false;
+
+      // 카카오 채널 설정 없으면 추가
+      if (!config.channels?.['kakao-talkchannel']) {
+        config.channels = config.channels || {};
+        config.channels['kakao-talkchannel'] = {
+          accounts: {
+            default: {
+              enabled: true,
+              dmPolicy: 'pairing',
+              relayUrl: 'https://kakao-talkchannel-relay-660864689462.asia-northeast3.run.app',
+            },
+          },
+        };
+        changed = true;
+      }
+
+      // plugins.allow에 kakao-talkchannel 추가
+      if (!config.plugins?.allow?.includes?.('kakao-talkchannel')) {
+        config.plugins = config.plugins || {};
+        config.plugins.allow = config.plugins.allow || [];
+        if (!config.plugins.allow.includes('kakao-talkchannel')) {
+          config.plugins.allow.push('kakao-talkchannel');
+          changed = true;
+        }
+      }
+
+      // /tmp/ 경로 → 번들 경로로 마이그레이션
+      const paths = config.plugins?.load?.paths || [];
+      const tmpIdx = paths.findIndex((/** @type {string} */ p) => p.includes('/tmp/openclaw-kakao-talkchannel'));
+      if (tmpIdx !== -1) {
+        paths[tmpIdx] = pluginPath;
+        changed = true;
+        console.log(`[gateway-starter] 플러그인 경로 마이그레이션: /tmp/... → ${pluginPath}`);
+      } else if (!paths.some((/** @type {string} */ p) => p.includes('kakao-talkchannel'))) {
+        // 카카오 플러그인 경로가 아예 없으면 추가
+        config.plugins = config.plugins || {};
+        config.plugins.load = config.plugins.load || {};
+        config.plugins.load.paths = config.plugins.load.paths || [];
+        config.plugins.load.paths.push(pluginPath);
+        changed = true;
+      }
+
+      // plugins.entries 확인
+      if (!config.plugins?.entries?.['kakao-talkchannel']) {
+        config.plugins = config.plugins || {};
+        config.plugins.entries = config.plugins.entries || {};
+        config.plugins.entries['kakao-talkchannel'] = { enabled: true };
+        changed = true;
+      }
+
+      // stale installs 정리 (/tmp 경로 제거)
+      if (config.plugins?.installs?.['kakao-talkchannel']?.installPath?.includes('/tmp/')) {
+        delete config.plugins.installs['kakao-talkchannel'];
+        if (Object.keys(config.plugins.installs).length === 0) {
+          delete config.plugins.installs;
+        }
+        changed = true;
+      }
+
+      if (changed) {
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
+        console.log('[gateway-starter] config 마이그레이션 완료');
+      }
+    } catch { /* config 파싱 실패 시 무시 */ }
   }
 }
 
